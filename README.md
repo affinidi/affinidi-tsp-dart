@@ -10,6 +10,11 @@ resolved through `ssi`'s DID resolution.
 No Flutter, no FFI, no platform crypto: it runs on the Dart VM, in the browser
 and on mobile.
 
+> **Status: pre-release (0.1.0), not independently security-audited.** Checked
+> against the specification's Appendix A vectors and, for interoperability, against
+> the ToIP reference and other implementations by
+> [tsp-conformance](https://github.com/OpenVTC/tsp-conformance).
+
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
