@@ -8,10 +8,10 @@
 ///
 /// Two layers are exported:
 ///
-/// * a low-level API over raw keys — [Tsp], [PrivateVid], [PublicVid] and the
-///   [TspPayload] types — that performs no I/O and resolves nothing;
-/// * an `ssi`-integrated layer — [TspDidManagerExtension], [SsiVidResolver],
-///   [DidPeer4Resolver] and [TspEndpoint] — that takes keys from a `DidManager`
+/// * a low-level API over raw keys — `Tsp`, `PrivateVid`, `PublicVid` and the
+///   `TspPayload` types — that performs no I/O and resolves nothing;
+/// * an `ssi`-integrated layer — `TspDidManagerExtension`, `SsiVidResolver`,
+///   `DidPeer4Resolver` and `TspEndpoint` — that takes keys from a `DidManager`
 ///   and resolves peers' VIDs through `ssi`'s DID resolution.
 library;
 
@@ -21,3 +21,9 @@ export 'src/keys/classical.dart';
 export 'src/keys/keys.dart';
 export 'src/message/model.dart';
 export 'src/message/tsp.dart';
+export 'src/relationship/endpoint.dart';
+export 'src/relationship/relationship.dart';
+export 'src/ssi/did_manager_extension.dart';
+export 'src/ssi/did_peer4_resolver.dart';
+export 'src/ssi/key_mapping.dart';
+export 'src/ssi/ssi_vid_resolver.dart';

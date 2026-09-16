@@ -504,7 +504,7 @@ DecodedFrame decodePayloadFrame({
 }
 
 /// Verifies a decoded referral's `Signature_new` against the introduced VID's
-/// [verificationKey]. [envelopeSender] and [payloadSender] come from the
+/// [verificationKey]. [payloadSender] is the ESSR sender field of the
 /// message that carried [invite].
 Future<bool> verifyReferralSignature({
   required RfiPayload invite,
