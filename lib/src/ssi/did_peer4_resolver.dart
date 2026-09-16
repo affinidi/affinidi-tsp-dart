@@ -55,7 +55,11 @@ final class DidPeer4Resolver implements DidResolver {
   static String shortForm(String longForm) {
     final parts = longForm.substring(_prefix.length).split(':');
     if (!longForm.startsWith(_prefix) || parts.length != 2) {
-      throw ArgumentError.value(longForm, 'longForm', 'not a long-form did:peer:4');
+      throw ArgumentError.value(
+        longForm,
+        'longForm',
+        'not a long-form did:peer:4',
+      );
     }
     _checkHash(parts[0], parts[1]);
     return '$_prefix${parts[0]}';
@@ -92,7 +96,8 @@ final class DidPeer4Resolver implements DidResolver {
     final json =
         jsonDecode(utf8.decode(Uint8List.sublistView(bytes, 2)))
             as Map<String, dynamic>;
-    String abs(Object? ref) => ref is String && ref.startsWith('#') ? '$id$ref' : '$ref';
+    String abs(Object? ref) =>
+        ref is String && ref.startsWith('#') ? '$id$ref' : '$ref';
     Object? absRefs(Object? list) => list is List
         ? [
             for (final e in list)

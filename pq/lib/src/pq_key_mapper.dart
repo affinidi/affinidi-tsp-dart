@@ -36,13 +36,21 @@ final class PostQuantumKeyMapper implements TspKeyMapper {
 
   @override
   TspVerificationKey? verificationKey(VerificationMethod method) {
-    final k = _key(method, mlDsa65Codec, TspSignatureAlgorithm.mlDsa65.publicKeyLength);
+    final k = _key(
+      method,
+      mlDsa65Codec,
+      TspSignatureAlgorithm.mlDsa65.publicKeyLength,
+    );
     return k == null ? null : MlDsa65VerificationKey(k);
   }
 
   @override
   TspEncryptionKey? encryptionKey(VerificationMethod method) {
-    final k = _key(method, mlKem768X25519Codec, TspKem.mlKem768X25519.publicKeyLength);
+    final k = _key(
+      method,
+      mlKem768X25519Codec,
+      TspKem.mlKem768X25519.publicKeyLength,
+    );
     return k == null ? null : MlKem768X25519EncryptionKey(k);
   }
 }

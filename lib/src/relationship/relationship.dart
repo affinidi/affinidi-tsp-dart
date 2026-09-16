@@ -119,7 +119,8 @@ final class Relationship {
   /// Whether [named] identifies this relationship.
   bool isNamedBy(TspDigest named) =>
       (digest != null && constantTimeEquals(digest!.bytes, named.bytes)) ||
-      (replyDigest != null && constantTimeEquals(replyDigest!.bytes, named.bytes));
+      (replyDigest != null &&
+          constantTimeEquals(replyDigest!.bytes, named.bytes));
 }
 
 /// The pure transition function of the relationship state machine.
@@ -155,7 +156,9 @@ RelationshipState transitionRelationship(
     _ => null,
   };
   if (next == null) {
-    throw TspRelationshipException('cannot ${event.name} in state ${state.wireName}');
+    throw TspRelationshipException(
+      'cannot ${event.name} in state ${state.wireName}',
+    );
   }
   return next;
 }

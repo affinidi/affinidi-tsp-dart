@@ -130,7 +130,9 @@ final class CesrWriter {
     final lead = padded - data.length;
     final quadlets = padded ~/ 3;
     if (quadlets <= Cesr.maxShortVariableQuadlets) {
-      _word(((Cesr.d0 + 4 + lead) << 18) | ((identifier & 0x3f) << 12) | quadlets);
+      _word(
+        ((Cesr.d0 + 4 + lead) << 18) | ((identifier & 0x3f) << 12) | quadlets,
+      );
     } else if (quadlets <= Cesr.maxLongVariableQuadlets) {
       _word(((Cesr.d0 + 7 + lead) << 18) | (identifier & 0x3f));
       _word(quadlets);
@@ -346,7 +348,11 @@ final class CesrReader {
   }
 
   /// Reads a variable-size primitive and returns a copy of its content.
-  Uint8List readVariable(int identifier, String what, {required int maxLength}) {
+  Uint8List readVariable(
+    int identifier,
+    String what, {
+    required int maxLength,
+  }) {
     final r = readVariableRange(identifier, what, maxLength: maxLength);
     return Uint8List.fromList(Uint8List.sublistView(bytes, r.start, r.end));
   }
@@ -362,7 +368,9 @@ final class CesrReader {
   /// Throws unless the reader is exactly at [end].
   void expectEnd(String what) {
     if (!isAtEnd) {
-      throw TspMalformedException('$remaining unexpected trailing bytes in $what');
+      throw TspMalformedException(
+        '$remaining unexpected trailing bytes in $what',
+      );
     }
   }
 }

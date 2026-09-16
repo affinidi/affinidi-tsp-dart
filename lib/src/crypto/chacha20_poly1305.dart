@@ -45,7 +45,9 @@ abstract final class ChaCha20Poly1305 {
     required List<int> ciphertextAndTag,
   }) async {
     if (ciphertextAndTag.length < tagLength) {
-      throw const TspDecryptionException('AEAD ciphertext shorter than its tag');
+      throw const TspDecryptionException(
+        'AEAD ciphertext shorter than its tag',
+      );
     }
     final split = ciphertextAndTag.length - tagLength;
     try {

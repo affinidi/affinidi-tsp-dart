@@ -6,12 +6,15 @@ import 'package:affinidi_tsp/crypto.dart';
 import 'package:test/test.dart';
 
 Uint8List hex(String s) => Uint8List.fromList([
-  for (var i = 0; i < s.length; i += 2) int.parse(s.substring(i, i + 2), radix: 16),
+  for (var i = 0; i < s.length; i += 2)
+    int.parse(s.substring(i, i + 2), radix: 16),
 ]);
 
 void main() {
   final v =
-      (jsonDecode(File('test/fixtures/rfc9180_a21_base.json').readAsStringSync())
+      (jsonDecode(
+                File('test/fixtures/rfc9180_a21_base.json').readAsStringSync(),
+              )
               as Map<String, Object?>)['vector']!
           as Map<String, Object?>;
   String f(String k) => v[k]! as String;
@@ -49,7 +52,8 @@ void main() {
     });
 
     test('first encryption: SealBase with ikmE and OpenBase', () async {
-      final enc0 = (v['encryptions']! as List<Object?>).first! as Map<String, Object?>;
+      final enc0 =
+          (v['encryptions']! as List<Object?>).first! as Map<String, Object?>;
       final sealed = await Hpke.sealBase(
         recipient: X25519EncryptionKey(hex(f('pkRm'))),
         info: hex(f('info')),
@@ -70,7 +74,8 @@ void main() {
     });
 
     test('a wrong aad does not open', () async {
-      final enc0 = (v['encryptions']! as List<Object?>).first! as Map<String, Object?>;
+      final enc0 =
+          (v['encryptions']! as List<Object?>).first! as Map<String, Object?>;
       expect(
         () => Hpke.openBase(
           recipient: X25519DecryptionKey.fromSecret(hex(f('skRm'))),
@@ -83,22 +88,25 @@ void main() {
       );
     });
 
-    test('ChaCha20Poly1305 matches every listed sequence-numbered encryption', () async {
-      final ks = Hpke.keySchedule(
-        kemId: 0x0020,
-        sharedSecret: hex(f('shared_secret')),
-        info: hex(f('info')),
-      );
-      for (final raw in v['encryptions']! as List<Object?>) {
-        final e = raw! as Map<String, Object?>;
-        final ct = await ChaCha20Poly1305.seal(
-          key: ks.key,
-          nonce: hex(e['nonce']! as String),
-          aad: hex(e['aad']! as String),
-          plaintext: hex(e['pt']! as String),
+    test(
+      'ChaCha20Poly1305 matches every listed sequence-numbered encryption',
+      () async {
+        final ks = Hpke.keySchedule(
+          kemId: 0x0020,
+          sharedSecret: hex(f('shared_secret')),
+          info: hex(f('info')),
         );
-        expect(ct, hex(e['ct']! as String));
-      }
-    });
+        for (final raw in v['encryptions']! as List<Object?>) {
+          final e = raw! as Map<String, Object?>;
+          final ct = await ChaCha20Poly1305.seal(
+            key: ks.key,
+            nonce: hex(e['nonce']! as String),
+            aad: hex(e['aad']! as String),
+            plaintext: hex(e['pt']! as String),
+          );
+          expect(ct, hex(e['ct']! as String));
+        }
+      },
+    );
   });
 }

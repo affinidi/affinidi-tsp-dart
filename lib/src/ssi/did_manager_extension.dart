@@ -29,7 +29,9 @@ extension TspDidManagerExtension on DidManager {
             ? authentication.first
             : assertionMethod.isNotEmpty
             ? assertionMethod.first
-            : throw TspInvalidInputException('${doc.id} has no signing method'));
+            : throw TspInvalidInputException(
+                '${doc.id} has no signing method',
+              ));
     final signer = await getSigner(signId);
     final signKey = await getKey(signId);
     if (signKey.publicKey.type != KeyType.ed25519) {
@@ -40,12 +42,17 @@ extension TspDidManagerExtension on DidManager {
 
     TspDecryptionKey? decryption;
     final kaId =
-        keyAgreementMethodId ?? (keyAgreement.isNotEmpty ? keyAgreement.first : null);
+        keyAgreementMethodId ??
+        (keyAgreement.isNotEmpty ? keyAgreement.first : null);
     if (kaId != null) {
       final vm = _findMethod(doc.keyAgreement, kaId, doc.id);
-      final pk = vm == null ? null : const ClassicalKeyMapper().encryptionKey(vm);
+      final pk = vm == null
+          ? null
+          : const ClassicalKeyMapper().encryptionKey(vm);
       if (pk == null) {
-        throw TspUnsupportedException('$kaId is not an X25519 key agreement key');
+        throw TspUnsupportedException(
+          '$kaId is not an X25519 key agreement key',
+        );
       }
       final pair = await getKey(kaId);
       decryption = X25519DecryptionKey.fromAgreement(
@@ -67,7 +74,8 @@ extension TspDidManagerExtension on DidManager {
   /// Returns the manager's own [PublicVid], as a peer would resolve it.
   Future<PublicVid> toTspPublicVid({
     List<TspKeyMapper> keyMappers = const [ClassicalKeyMapper()],
-  }) async => publicVidFromDocument(await getDidDocument(), keyMappers: keyMappers);
+  }) async =>
+      publicVidFromDocument(await getDidDocument(), keyMappers: keyMappers);
 }
 
 VerificationMethod? _findMethod(

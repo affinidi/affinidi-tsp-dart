@@ -174,7 +174,8 @@ sealed class TspPayload {
 
 /// Shared shape of XSCS and XCTL: a generic CESR stream (`-A##`).
 sealed class StreamPayload extends TspPayload {
-  StreamPayload._(Uint8List data, {super.padding}) : stream = _singleBytes(data);
+  StreamPayload._(Uint8List data, {super.padding})
+    : stream = _singleBytes(data);
 
   StreamPayload._stream(List<int> stream, {super.padding})
     : stream = Uint8List.fromList(stream) {
@@ -309,9 +310,12 @@ final class RfdPayload extends TspPayload {
 /// `XHOP`: a nested (no hops) or routed (hops) message.
 final class HopPayload extends TspPayload {
   /// Wraps the complete encoded TSP message [inner].
-  HopPayload({List<String> hops = const [], required List<int> inner, super.padding})
-    : hops = List.unmodifiable(hops),
-      inner = Uint8List.fromList(inner);
+  HopPayload({
+    List<String> hops = const [],
+    required List<int> inner,
+    super.padding,
+  }) : hops = List.unmodifiable(hops),
+       inner = Uint8List.fromList(inner);
 
   /// The remaining route; empty for a nested message.
   final List<String> hops;

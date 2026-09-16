@@ -46,7 +46,11 @@ final class TspDigest {
   TspDigest(List<int> bytes, [this.algorithm = TspDigestAlgorithm.sha256])
     : bytes = Uint8List.fromList(bytes) {
     if (this.bytes.length != 32) {
-      throw ArgumentError.value(bytes.length, 'bytes', 'digest must be 32 bytes');
+      throw ArgumentError.value(
+        bytes.length,
+        'bytes',
+        'digest must be 32 bytes',
+      );
     }
   }
 
@@ -66,7 +70,8 @@ final class TspDigest {
   int get hashCode => Object.hash(algorithm, Object.hashAll(bytes));
 
   @override
-  String toString() => 'TspDigest(${algorithm.wireName}, ${base64UrlNoPad(bytes)})';
+  String toString() =>
+      'TspDigest(${algorithm.wireName}, ${base64UrlNoPad(bytes)})';
 }
 
 /// SHA2-256 of [data].

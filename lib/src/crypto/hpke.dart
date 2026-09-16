@@ -110,7 +110,13 @@ abstract final class Hpke {
     ]);
     final secret = labeledExtract(sid, sharedSecret, 'secret', empty);
     return HpkeKeySchedule(
-      key: labeledExpand(sid, secret, 'key', context, ChaCha20Poly1305.keyLength),
+      key: labeledExpand(
+        sid,
+        secret,
+        'key',
+        context,
+        ChaCha20Poly1305.keyLength,
+      ),
       baseNonce: labeledExpand(
         sid,
         secret,

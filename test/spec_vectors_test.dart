@@ -23,7 +23,11 @@ void main() {
   }
 
   Future<Uint8List> reencodeFrame(TspMessage m, TspScheme scheme) async {
-    final fields = encodeEnvelopeFields(m.sender, m.receiver, TspLimits.defaults);
+    final fields = encodeEnvelopeFields(
+      m.sender,
+      m.receiver,
+      TspLimits.defaults,
+    );
     final f = await encodePayloadFrame(
       payload: m.payload,
       envelopeFields: fields,
@@ -69,10 +73,17 @@ void main() {
       final p = m.payload as ScsPayload;
       expect(utf8.decode(p.data!), 'hello world');
       expect(p.padding, isEmpty);
-      expect(await reencodeFrame(m, m.scheme), b64(vec('direct-sealed-box')['payload']! as String));
+      expect(
+        await reencodeFrame(m, m.scheme),
+        b64(vec('direct-sealed-box')['payload']! as String),
+      );
       // The ephemeral public key is the first 32 bytes of the ciphertext.
       expect(
-        await repack('direct-sealed-box', ScsPayload(utf8.encode('hello world')), TspScheme.sealedBox),
+        await repack(
+          'direct-sealed-box',
+          ScsPayload(utf8.encode('hello world')),
+          TspScheme.sealedBox,
+        ),
         message('direct-sealed-box'),
       );
     });
@@ -83,9 +94,16 @@ void main() {
       expect(m.kem, TspKem.x25519);
       expect(m.payloadSender, isNull);
       expect(utf8.decode((m.payload as ScsPayload).data!), 'hello world');
-      expect(await reencodeFrame(m, m.scheme), b64(vec('direct-hpke-base')['payload']! as String));
       expect(
-        await repack('direct-hpke-base', ScsPayload(utf8.encode('hello world')), TspScheme.hpkeBase),
+        await reencodeFrame(m, m.scheme),
+        b64(vec('direct-hpke-base')['payload']! as String),
+      );
+      expect(
+        await repack(
+          'direct-hpke-base',
+          ScsPayload(utf8.encode('hello world')),
+          TspScheme.hpkeBase,
+        ),
         message('direct-hpke-base'),
       );
     });
@@ -94,7 +112,10 @@ void main() {
       final m = await openVector('direct-signed-only');
       expect(m.scheme, TspScheme.signedOnly);
       expect(m.confidential, isFalse);
-      expect(utf8.decode((m.payload as ScsPayload).data!), 'public announcement!');
+      expect(
+        utf8.decode((m.payload as ScsPayload).data!),
+        'public announcement!',
+      );
       expect(
         await repack(
           'direct-signed-only',
@@ -112,7 +133,10 @@ void main() {
       expect(p.referral, isNull);
       expect(p.digest!.algorithm, TspDigestAlgorithm.sha256);
       expect(p.nonce, Uint8List(16)..fillRange(0, 16, 0x11));
-      expect(await reencodeFrame(m, m.scheme), b64(vec('control-rfi-direct')['payload']! as String));
+      expect(
+        await reencodeFrame(m, m.scheme),
+        b64(vec('control-rfi-direct')['payload']! as String),
+      );
       expect(
         await repack(
           'control-rfi-direct',
@@ -125,12 +149,20 @@ void main() {
     });
 
     test('control-rfa-direct', () async {
-      final invite = (await openVector('control-rfi-direct')).payload as RfiPayload;
+      final invite =
+          (await openVector('control-rfi-direct')).payload as RfiPayload;
       final m = await openVector('control-rfa-direct');
       final p = m.payload as RfaPayload;
-      expect(p.digest, invite.digest, reason: 'the accept echoes the invite digest');
+      expect(
+        p.digest,
+        invite.digest,
+        reason: 'the accept echoes the invite digest',
+      );
       expect(p.replyDigest, isNotNull);
-      expect(await reencodeFrame(m, m.scheme), b64(vec('control-rfa-direct')['payload']! as String));
+      expect(
+        await reencodeFrame(m, m.scheme),
+        b64(vec('control-rfa-direct')['payload']! as String),
+      );
       expect(
         await repack(
           'control-rfa-direct',
@@ -143,13 +175,21 @@ void main() {
     });
 
     test('control-rfd', () async {
-      final invite = (await openVector('control-rfi-direct')).payload as RfiPayload;
+      final invite =
+          (await openVector('control-rfi-direct')).payload as RfiPayload;
       final m = await openVector('control-rfd');
       final p = m.payload as RfdPayload;
       expect(p.digest, invite.digest);
-      expect(await reencodeFrame(m, m.scheme), b64(vec('control-rfd')['payload']! as String));
       expect(
-        await repack('control-rfd', RfdPayload(digest: p.digest), TspScheme.hpkeBase),
+        await reencodeFrame(m, m.scheme),
+        b64(vec('control-rfd')['payload']! as String),
+      );
+      expect(
+        await repack(
+          'control-rfd',
+          RfdPayload(digest: p.digest),
+          TspScheme.hpkeBase,
+        ),
         message('control-rfd'),
       );
     });
@@ -160,7 +200,10 @@ void main() {
       expect(m.payloadSender, sv.id('alice'));
       final p = m.payload as RfiPayload;
       expect(p.digest!.algorithm, TspDigestAlgorithm.blake2b256);
-      expect(await reencodeFrame(m, m.scheme), b64(vec('control-rfi-sealed-box')['payload']! as String));
+      expect(
+        await reencodeFrame(m, m.scheme),
+        b64(vec('control-rfi-sealed-box')['payload']! as String),
+      );
       expect(
         await repack(
           'control-rfi-sealed-box',
@@ -177,7 +220,10 @@ void main() {
       final p = m.payload as HopPayload;
       expect(p.hops, isEmpty);
       expect(p.isRouted, isFalse);
-      expect(await reencodeFrame(m, m.scheme), b64(vec('nested-direct')['payload']! as String));
+      expect(
+        await reencodeFrame(m, m.scheme),
+        b64(vec('nested-direct')['payload']! as String),
+      );
       final inner = await Tsp.open(
         p.inner,
         receiver: sv.privateVid('nested_bob'),
@@ -189,7 +235,11 @@ void main() {
         b64(vec('nested-direct')['innerPayload']! as String),
       );
       expect(
-        await repack('nested-direct', HopPayload(inner: p.inner), TspScheme.hpkeBase),
+        await repack(
+          'nested-direct',
+          HopPayload(inner: p.inner),
+          TspScheme.hpkeBase,
+        ),
         message('nested-direct'),
       );
     });
@@ -198,7 +248,10 @@ void main() {
       final m = await openVector('routed');
       final p = m.payload as HopPayload;
       expect(p.hops, [sv.id('q'), sv.id('nested_bob')]);
-      expect(await reencodeFrame(m, m.scheme), b64(vec('routed')['payload']! as String));
+      expect(
+        await reencodeFrame(m, m.scheme),
+        b64(vec('routed')['payload']! as String),
+      );
       final inner = await Tsp.open(
         p.inner,
         receiver: sv.privateVid('nested_bob'),
@@ -209,7 +262,11 @@ void main() {
         b64(vec('routed')['innerPayload']! as String),
       );
       expect(
-        await repack('routed', HopPayload(hops: p.hops, inner: p.inner), TspScheme.hpkeBase),
+        await repack(
+          'routed',
+          HopPayload(hops: p.hops, inner: p.inner),
+          TspScheme.hpkeBase,
+        ),
         message('routed'),
       );
     });

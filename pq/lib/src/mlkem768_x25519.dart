@@ -39,7 +39,9 @@ abstract final class MlKem768X25519 {
       );
     }
     final expanded = Shake256.shake(seed, 96);
-    final (pkM, skM) = _mlKem.generateKeyPair(Uint8List.sublistView(expanded, 0, 64));
+    final (pkM, skM) = _mlKem.generateKeyPair(
+      Uint8List.sublistView(expanded, 0, 64),
+    );
     final skX = Uint8List.fromList(Uint8List.sublistView(expanded, 64, 96));
     return (skM, skX, pkM, X25519.publicKey(skX));
   }
@@ -76,7 +78,10 @@ abstract final class MlKem768X25519 {
 
   /// Encapsulates to [publicKey]. [randomness], when given, is the 64-byte
   /// encapsulation randomness (test vectors only).
-  static KemEncapsulation encapsulate(Uint8List publicKey, {Uint8List? randomness}) {
+  static KemEncapsulation encapsulate(
+    Uint8List publicKey, {
+    Uint8List? randomness,
+  }) {
     if (publicKey.length != publicKeyLength) {
       throw TspInvalidInputException(
         'MLKEM768-X25519 public key must be $publicKeyLength bytes, got ${publicKey.length}',
@@ -117,7 +122,9 @@ abstract final class MlKem768X25519 {
       );
     }
     final (skM, skX, _, pkX) = expand(seed);
-    final ctM = Uint8List.fromList(Uint8List.sublistView(enc, 0, _mlKemCiphertextLength));
+    final ctM = Uint8List.fromList(
+      Uint8List.sublistView(enc, 0, _mlKemCiphertextLength),
+    );
     final ctX = Uint8List.sublistView(enc, _mlKemCiphertextLength);
     final Uint8List ssM;
     try {

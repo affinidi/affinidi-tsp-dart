@@ -60,7 +60,9 @@ abstract final class SealedBox {
     X25519KeyAgreement recipient,
   ) async {
     if (sealed.length < overhead) {
-      throw const TspDecryptionException('sealed box shorter than its overhead');
+      throw const TspDecryptionException(
+        'sealed box shorter than its overhead',
+      );
     }
     final epk = Uint8List.sublistView(sealed, 0, 32);
     final shared = await recipient.diffieHellman(Uint8List.fromList(epk));
@@ -73,7 +75,10 @@ abstract final class SealedBox {
     try {
       return TweetNaCl.crypto_box_open_afternm(m, c, c.length, nonce, k);
     } on Object catch (e) {
-      throw TspDecryptionException('sealed box authentication failed', cause: e);
+      throw TspDecryptionException(
+        'sealed box authentication failed',
+        cause: e,
+      );
     }
   }
 }

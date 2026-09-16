@@ -125,7 +125,8 @@ final class X25519EncryptionKey implements TspEncryptionKey {
 }
 
 /// An X25519 private key, held in memory or behind a key-agreement callback.
-final class X25519DecryptionKey implements TspDecryptionKey, X25519KeyAgreement {
+final class X25519DecryptionKey
+    implements TspDecryptionKey, X25519KeyAgreement {
   X25519DecryptionKey._(this.publicKey, this._agree);
 
   /// Creates a key from its 32-byte secret.

@@ -18,19 +18,37 @@ void main() {
   final sv = SpecVectors.load();
 
   group('DidPeer4Resolver', () {
-    test('resolves every classical Appendix A long form to its published keys', () async {
-      final resolver = SsiVidResolver();
-      for (final name in ['alice', 'bob', 'nested_alice', 'nested_bob', 'p', 'q']) {
-        final ident = sv.identifiers[name]!;
-        final vid = await resolver.resolve(ident['longForm']! as String);
-        expect(vid.verificationKey.bytes, b64(ident['pkS']! as String), reason: name);
-        expect(vid.encryptionKey!.bytes, b64(ident['pkE']! as String), reason: name);
-        expect(
-          DidPeer4Resolver.shortForm(ident['longForm']! as String),
-          ident['id'],
-        );
-      }
-    });
+    test(
+      'resolves every classical Appendix A long form to its published keys',
+      () async {
+        final resolver = SsiVidResolver();
+        for (final name in [
+          'alice',
+          'bob',
+          'nested_alice',
+          'nested_bob',
+          'p',
+          'q',
+        ]) {
+          final ident = sv.identifiers[name]!;
+          final vid = await resolver.resolve(ident['longForm']! as String);
+          expect(
+            vid.verificationKey.bytes,
+            b64(ident['pkS']! as String),
+            reason: name,
+          );
+          expect(
+            vid.encryptionKey!.bytes,
+            b64(ident['pkE']! as String),
+            reason: name,
+          );
+          expect(
+            DidPeer4Resolver.shortForm(ident['longForm']! as String),
+            ident['id'],
+          );
+        }
+      },
+    );
 
     test('a short form resolves once its long form has been seen', () async {
       final peer4 = DidPeer4Resolver();
@@ -46,7 +64,8 @@ void main() {
 
     test('a tampered long form is refused', () async {
       final long = sv.identifiers['alice']!['longForm']! as String;
-      final tampered = '${long.substring(0, long.length - 1)}${long.endsWith('p') ? 'q' : 'p'}';
+      final tampered =
+          '${long.substring(0, long.length - 1)}${long.endsWith('p') ? 'q' : 'p'}';
       await expectLater(
         SsiVidResolver().resolve(tampered),
         throwsA(isA<TspUnsupportedException>()),
@@ -55,31 +74,38 @@ void main() {
   });
 
   group('DidManager integration', () {
-    test('did:key identities pack and open through ssi keys and resolution', () async {
-      final aliceManager = await _didKeyManager('alice');
-      final bobManager = await _didKeyManager('bob');
-      final alice = await aliceManager.toTspPrivateVid();
-      final bob = await bobManager.toTspPrivateVid();
+    test(
+      'did:key identities pack and open through ssi keys and resolution',
+      () async {
+        final aliceManager = await _didKeyManager('alice');
+        final bobManager = await _didKeyManager('bob');
+        final alice = await aliceManager.toTspPrivateVid();
+        final bob = await bobManager.toTspPrivateVid();
 
-      final resolver = SsiVidResolver();
-      final bobPublic = await resolver.resolve(bob.id);
-      final alicePublic = await resolver.resolve(alice.id);
-      expect(bobPublic.encryptionKey, isNotNull);
+        final resolver = SsiVidResolver();
+        final bobPublic = await resolver.resolve(bob.id);
+        final alicePublic = await resolver.resolve(alice.id);
+        expect(bobPublic.encryptionKey, isNotNull);
 
-      for (final scheme in TspScheme.values) {
-        final packed = await Tsp.pack(
-          sender: alice,
-          receiver: bobPublic,
-          payload: ScsPayload(utf8.encode('hi via ${scheme.wireName}')),
-          scheme: scheme,
-        );
-        final opened = await Tsp.open(packed.bytes, receiver: bob, sender: alicePublic);
-        expect(
-          utf8.decode((opened.payload as ScsPayload).data!),
-          'hi via ${scheme.wireName}',
-        );
-      }
-    });
+        for (final scheme in TspScheme.values) {
+          final packed = await Tsp.pack(
+            sender: alice,
+            receiver: bobPublic,
+            payload: ScsPayload(utf8.encode('hi via ${scheme.wireName}')),
+            scheme: scheme,
+          );
+          final opened = await Tsp.open(
+            packed.bytes,
+            receiver: bob,
+            sender: alicePublic,
+          );
+          expect(
+            utf8.decode((opened.payload as ScsPayload).data!),
+            'hi via ${scheme.wireName}',
+          );
+        }
+      },
+    );
 
     test('the manager public VID matches what resolution returns', () async {
       final manager = await _didKeyManager('carol');
@@ -99,10 +125,20 @@ void main() {
       final eb = TspEndpoint(identities: [b], resolver: resolver);
 
       final invite = await ea.invite(from: a.id, to: b.id);
-      expect((await eb.receive(invite.bytes)).kind, TspEndpointEventKind.invite);
+      expect(
+        (await eb.receive(invite.bytes)).kind,
+        TspEndpointEventKind.invite,
+      );
       final accept = await eb.accept(from: b.id, to: a.id);
-      expect((await ea.receive(accept.bytes)).kind, TspEndpointEventKind.accept);
-      final msg = await ea.send(from: a.id, to: b.id, data: utf8.encode('hello'));
+      expect(
+        (await ea.receive(accept.bytes)).kind,
+        TspEndpointEventKind.accept,
+      );
+      final msg = await ea.send(
+        from: a.id,
+        to: b.id,
+        data: utf8.encode('hello'),
+      );
       final ev = await eb.receive(msg.bytes);
       expect(utf8.decode(ev.data!), 'hello');
     });

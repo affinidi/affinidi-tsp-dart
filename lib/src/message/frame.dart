@@ -34,15 +34,24 @@ String _decodeVid(Uint8List bytes, String what) {
 
 /// The encoded envelope fields `TSP_Version ‖ VID_sndr ‖ VID_rcvr` — the
 /// HPKE-Base aad and the leading part of every SAID input.
-Uint8List encodeEnvelopeFields(String sender, String? receiver, TspLimits limits) {
+Uint8List encodeEnvelopeFields(
+  String sender,
+  String? receiver,
+  TspLimits limits,
+) {
   if (sender.isEmpty) {
-    throw const TspInvalidInputException('the envelope sender may not be empty');
+    throw const TspInvalidInputException(
+      'the envelope sender may not be empty',
+    );
   }
   final w = CesrWriter()
     ..raw(TspCodes.ytsp)
     ..count(TspVersion.current.major, TspVersion.current.minor)
     ..variable(TspCodes.bytes, encodeVid(sender, limits))
-    ..variable(TspCodes.bytes, receiver == null ? const [] : encodeVid(receiver, limits));
+    ..variable(
+      TspCodes.bytes,
+      receiver == null ? const [] : encodeVid(receiver, limits),
+    );
   return w.takeBytes();
 }
 
@@ -55,7 +64,9 @@ Uint8List _vidListBytes(List<String> vids, TspLimits limits) {
   final body = CesrWriter();
   for (final v in vids) {
     if (v.isEmpty) {
-      throw const TspInvalidInputException('a VID list may not contain the NULL VID');
+      throw const TspInvalidInputException(
+        'a VID list may not contain the NULL VID',
+      );
     }
     body.variable(TspCodes.bytes, encodeVid(v, limits));
   }
@@ -73,13 +84,17 @@ Uint8List _nonceField(Uint8List nonce) =>
     (CesrWriter()..fixed(TspCodes.nonce, nonce)).takeBytes();
 
 Uint8List _bareVidField(String vid, TspLimits limits) =>
-    (CesrWriter()..variable(TspCodes.bytes, encodeVid(vid, limits))).takeBytes();
+    (CesrWriter()..variable(TspCodes.bytes, encodeVid(vid, limits)))
+        .takeBytes();
 
 Uint8List _paddingField(Uint8List padding) =>
     (CesrWriter()..variable(TspCodes.bytes, padding)).takeBytes();
 
 /// Encodes a signature attachment: `-C## -K## <primitive>`.
-Uint8List encodeSignatureAttachment(TspSignatureAlgorithm alg, Uint8List signature) {
+Uint8List encodeSignatureAttachment(
+  TspSignatureAlgorithm alg,
+  Uint8List signature,
+) {
   if (signature.length != alg.signatureLength) {
     throw TspInvalidInputException(
       '${alg.wireName} signature must be ${alg.signatureLength} bytes, got ${signature.length}',
@@ -107,13 +122,19 @@ Uint8List encodeSignatureAttachment(TspSignatureAlgorithm alg, Uint8List signatu
 }
 
 /// A decoded signature primitive.
-typedef DecodedSignature = ({TspSignatureAlgorithm algorithm, Uint8List signature});
+typedef DecodedSignature = ({
+  TspSignatureAlgorithm algorithm,
+  Uint8List signature,
+});
 
 /// Decodes a signature attachment at the cursor, returning its first
 /// signature. Every primitive in the group must be well formed.
 DecodedSignature decodeSignatureAttachment(CesrReader r, String what) {
   final c = r.readGroup(TspCodes.attachmentGroup, '$what attachment group');
-  final k = c.readGroup(TspCodes.indexedSignatureGroup, '$what signature group');
+  final k = c.readGroup(
+    TspCodes.indexedSignatureGroup,
+    '$what signature group',
+  );
   c.expectEnd('$what attachment group');
   DecodedSignature? first;
   while (!k.isAtEnd) {
@@ -123,12 +144,19 @@ DecodedSignature decodeSignatureAttachment(CesrReader r, String what) {
             ((Cesr.d0 + 1) << 18 | TspCodes.mlDsa65Signature)) {
       sig = (
         algorithm: TspSignatureAlgorithm.mlDsa65,
-        signature: k.readFixed(TspCodes.mlDsa65Signature, 3309, '$what ML-DSA-65 signature'),
+        signature: k.readFixed(
+          TspCodes.mlDsa65Signature,
+          3309,
+          '$what ML-DSA-65 signature',
+        ),
       );
-    } else if (k.remaining >= 2 && k.bytes[k.pos] >> 2 == TspCodes.ed25519IndexedSignature) {
+    } else if (k.remaining >= 2 &&
+        k.bytes[k.pos] >> 2 == TspCodes.ed25519IndexedSignature) {
       final w = k.bytes[k.pos] << 8 | k.bytes[k.pos + 1];
       if (w & 0x0f != 0) {
-        throw TspMalformedException('non-canonical pad bits in $what signature');
+        throw TspMalformedException(
+          'non-canonical pad bits in $what signature',
+        );
       }
       final index = (w >> 4) & 0x3f;
       k.pos += 2;
@@ -175,12 +203,12 @@ Future<EncodedFrame> encodePayloadFrame({
       'padding of ${payload.padding.length} bytes exceeds the limit',
     );
   }
-  final senderField = (CesrWriter()
-        ..variable(
-          TspCodes.bytes,
-          payloadSender == null ? const [] : encodeVid(payloadSender, limits),
-        ))
-      .takeBytes();
+  final senderField =
+      (CesrWriter()..variable(
+            TspCodes.bytes,
+            payloadSender == null ? const [] : encodeVid(payloadSender, limits),
+          ))
+          .takeBytes();
   final padding = _paddingField(payload.padding);
   final body = CesrWriter();
   TspDigest? said;
@@ -215,7 +243,9 @@ Future<EncodedFrame> encodePayloadFrame({
       final n = _nonceField(_checkNonce(nonce));
       final path = _vidListBytes(replyPath, limits);
       if (referral != null && referral.vid.isEmpty) {
-        throw const TspInvalidInputException('a referral may not name the NULL VID');
+        throw const TspInvalidInputException(
+          'a referral may not name the NULL VID',
+        );
       }
       final digestBytes = digestAlgorithm.hash(
         concatBytes([
@@ -266,10 +296,11 @@ Future<EncodedFrame> encodePayloadFrame({
           _bareVidField(referral.vid, limits),
           encodeSignatureAttachment(alg, sig),
         ]);
-        referralField = (CesrWriter()
-              ..count(TspCodes.vidList, group.length ~/ 3)
-              ..raw(group))
-            .takeBytes();
+        referralField =
+            (CesrWriter()
+                  ..count(TspCodes.vidList, group.length ~/ 3)
+                  ..raw(group))
+                .takeBytes();
       }
       body
         ..raw(TspCodes.xrfi)
@@ -306,10 +337,11 @@ Future<EncodedFrame> encodePayloadFrame({
   }
 
   final content = body.takeBytes();
-  final frame = (CesrWriter()
-        ..count(TspCodes.payload, content.length ~/ 3)
-        ..raw(content))
-      .takeBytes();
+  final frame =
+      (CesrWriter()
+            ..count(TspCodes.payload, content.length ~/ 3)
+            ..raw(content))
+          .takeBytes();
   return (frame: frame, said: said);
 }
 
@@ -327,7 +359,9 @@ Uint8List _checkNonce(Uint8List? nonce) {
 typedef DecodedFrame = ({TspPayload payload, String? payloadSender});
 
 bool _is(Uint8List code, Uint8List bytes, int at) =>
-    bytes[at] == code[0] && bytes[at + 1] == code[1] && bytes[at + 2] == code[2];
+    bytes[at] == code[0] &&
+    bytes[at + 1] == code[1] &&
+    bytes[at + 2] == code[2];
 
 /// Decodes and verifies a `-Z` payload frame occupying all of [plaintext].
 ///
@@ -394,7 +428,11 @@ DecodedFrame decodePayloadFrame({
       if (vids.length >= limits.maxHops) {
         throw TspMalformedException('$what exceeds ${limits.maxHops} entries');
       }
-      final b = g.readVariable(TspCodes.bytes, 'VID in $what', maxLength: limits.maxVidLength);
+      final b = g.readVariable(
+        TspCodes.bytes,
+        'VID in $what',
+        maxLength: limits.maxVidLength,
+      );
       if (b.isEmpty) throw TspMalformedException('NULL VID in $what');
       vids.add(_decodeVid(b, 'VID in $what'));
     }
@@ -419,7 +457,9 @@ DecodedFrame decodePayloadFrame({
     final hops = readVidList('hop list');
     final padding = readPadding();
     if (r.isAtEnd) {
-      throw const TspMalformedException('nested payload carries no inner message');
+      throw const TspMalformedException(
+        'nested payload carries no inner message',
+      );
     }
     final inner = r.readRaw(r.remaining, 'inner message');
     payload = HopPayload(hops: hops, inner: inner, padding: padding);
@@ -447,7 +487,10 @@ DecodedFrame decodePayloadFrame({
       bareVid = Uint8List.sublistView(plaintext, vidStart, refGroup.pos);
       final sig = decodeSignatureAttachment(refGroup, 'referral');
       refGroup.expectEnd('referral field');
-      referral = Referral(vid: _decodeVid(vb, 'referral VID'), signature: sig.signature);
+      referral = Referral(
+        vid: _decodeVid(vb, 'referral VID'),
+        signature: sig.signature,
+      );
     }
     final padding = readPadding();
     r.expectEnd('payload frame');
@@ -517,15 +560,17 @@ Future<bool> verifyReferralSignature({
   final digest = invite.digest;
   final nonce = invite.nonce;
   if (referral == null || sig == null || digest == null || nonce == null) {
-    throw const TspInvalidInputException('the invite carries no decoded referral');
+    throw const TspInvalidInputException(
+      'the invite carries no decoded referral',
+    );
   }
   if (referral.algorithm != verificationKey.algorithm) return false;
-  final senderField = (CesrWriter()
-        ..variable(
-          TspCodes.bytes,
-          payloadSender == null ? const [] : encodeVid(payloadSender, limits),
-        ))
-      .takeBytes();
+  final senderField =
+      (CesrWriter()..variable(
+            TspCodes.bytes,
+            payloadSender == null ? const [] : encodeVid(payloadSender, limits),
+          ))
+          .takeBytes();
   final data = concatBytes([
     TspCodes.xrfi,
     senderField,

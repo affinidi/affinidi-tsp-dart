@@ -8,7 +8,8 @@ import 'mlkem768_x25519.dart';
 /// An MLKEM768-X25519 public encryption key (1216 bytes).
 final class MlKem768X25519EncryptionKey implements TspEncryptionKey {
   /// Creates a key from its raw bytes.
-  MlKem768X25519EncryptionKey(List<int> bytes) : bytes = Uint8List.fromList(bytes) {
+  MlKem768X25519EncryptionKey(List<int> bytes)
+    : bytes = Uint8List.fromList(bytes) {
     if (this.bytes.length != MlKem768X25519.publicKeyLength) {
       throw const TspInvalidInputException(
         'MLKEM768-X25519 public key must be ${MlKem768X25519.publicKeyLength} bytes',
@@ -56,7 +57,8 @@ final class MlKem768X25519DecryptionKey implements TspDecryptionKey {
 /// so TSP signatures are reproducible, as they are with Ed25519.
 final class MlDsa65SigningKey implements TspSigningKey {
   /// Creates a key from its 4032-byte expanded encoding.
-  MlDsa65SigningKey(List<int> expandedKey) : _sk = Uint8List.fromList(expandedKey) {
+  MlDsa65SigningKey(List<int> expandedKey)
+    : _sk = Uint8List.fromList(expandedKey) {
     if (_sk.length != DilithiumParams.mlDsa65.secretKeyBytes) {
       throw TspInvalidInputException(
         'ML-DSA-65 private key must be ${DilithiumParams.mlDsa65.secretKeyBytes} bytes',

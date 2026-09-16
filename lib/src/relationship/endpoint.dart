@@ -125,7 +125,9 @@ final class TspEndpoint {
   PrivateVid _local(String vid) {
     final i = _identities[vid];
     if (i == null) {
-      throw TspInvalidInputException('$vid is not a local identity of this endpoint');
+      throw TspInvalidInputException(
+        '$vid is not a local identity of this endpoint',
+      );
     }
     return i;
   }
@@ -134,14 +136,17 @@ final class TspEndpoint {
   Future<Relationship> relationship(String local, String remote) =>
       store.get(local, remote);
 
-  Future<PackedTspMessage> _pack(PrivateVid from, String to, TspPayload payload) async =>
-      Tsp.pack(
-        sender: from,
-        receiver: await resolver.resolve(to),
-        payload: payload,
-        scheme: scheme,
-        options: TspPackOptions(limits: limits),
-      );
+  Future<PackedTspMessage> _pack(
+    PrivateVid from,
+    String to,
+    TspPayload payload,
+  ) async => Tsp.pack(
+    sender: from,
+    receiver: await resolver.resolve(to),
+    payload: payload,
+    scheme: scheme,
+    options: TspPackOptions(limits: limits),
+  );
 
   /// Sends an invite from [from] to [to]. [replyPath] asks for a routed
   /// accept.
@@ -152,7 +157,10 @@ final class TspEndpoint {
   }) async {
     final local = _local(from);
     final rel = await store.get(from, to);
-    final next = transitionRelationship(rel.state, RelationshipEvent.sendInvite);
+    final next = transitionRelationship(
+      rel.state,
+      RelationshipEvent.sendInvite,
+    );
     final packed = await _pack(local, to, RfiPayload(replyPath: replyPath));
     await store.put(
       rel.copyWith(state: next, digest: packed.digest, initiatedLocally: true),
@@ -161,21 +169,37 @@ final class TspEndpoint {
   }
 
   /// Accepts, as [from], the invite received from [to].
-  Future<PackedTspMessage> accept({required String from, required String to}) async {
+  Future<PackedTspMessage> accept({
+    required String from,
+    required String to,
+  }) async {
     final local = _local(from);
     final rel = await store.get(from, to);
-    final next = transitionRelationship(rel.state, RelationshipEvent.sendAccept);
+    final next = transitionRelationship(
+      rel.state,
+      RelationshipEvent.sendAccept,
+    );
     final packed = await _pack(local, to, RfaPayload(digest: rel.digest!));
     await store.put(rel.copyWith(state: next, replyDigest: packed.digest));
     return packed;
   }
 
   /// Declines (or cancels) the relationship between [from] and [to].
-  Future<PackedTspMessage> cancel({required String from, required String to}) async {
+  Future<PackedTspMessage> cancel({
+    required String from,
+    required String to,
+  }) async {
     final local = _local(from);
     final rel = await store.get(from, to);
-    final next = transitionRelationship(rel.state, RelationshipEvent.sendCancel);
-    final packed = await _pack(local, to, RfdPayload(digest: rel.cancelDigest!));
+    final next = transitionRelationship(
+      rel.state,
+      RelationshipEvent.sendCancel,
+    );
+    final packed = await _pack(
+      local,
+      to,
+      RfdPayload(digest: rel.cancelDigest!),
+    );
     await store.put(Relationship.none(from, to).copyWith(state: next));
     return packed;
   }
@@ -205,7 +229,9 @@ final class TspEndpoint {
     final to = info.receiver;
     final local = to == null ? null : _identities[to];
     if (local == null) {
-      throw const TspReceiverException('the message is not addressed to a local identity');
+      throw const TspReceiverException(
+        'the message is not addressed to a local identity',
+      );
     }
     final PublicVid remote;
     try {
@@ -215,7 +241,12 @@ final class TspEndpoint {
     } on Object catch (e) {
       throw TspSenderException('cannot resolve the sender VID', cause: e);
     }
-    final message = await Tsp.open(bytes, receiver: local, sender: remote, limits: limits);
+    final message = await Tsp.open(
+      bytes,
+      receiver: local,
+      sender: remote,
+      limits: limits,
+    );
     final from = message.sender;
     final rel = await store.get(local.id, from);
 
@@ -264,10 +295,15 @@ final class TspEndpoint {
         if (rel.state != RelationshipState.inviteSent ||
             rel.digest == null ||
             rel.digest != digest) {
-          throw const TspRelationshipException('the accept matches no outstanding invite');
+          throw const TspRelationshipException(
+            'the accept matches no outstanding invite',
+          );
         }
         final updated = rel.copyWith(
-          state: transitionRelationship(rel.state, RelationshipEvent.receiveAccept),
+          state: transitionRelationship(
+            rel.state,
+            RelationshipEvent.receiveAccept,
+          ),
           replyDigest: replyDigest,
         );
         await store.put(updated);
@@ -275,11 +311,17 @@ final class TspEndpoint {
 
       case RfdPayload(:final digest):
         if (rel.state == RelationshipState.none || !rel.isNamedBy(digest)) {
-          throw const TspRelationshipException('the cancel names no known relationship');
+          throw const TspRelationshipException(
+            'the cancel names no known relationship',
+          );
         }
         PackedTspMessage? reply;
         if (rel.state == RelationshipState.bidirectional) {
-          reply = await _pack(local, from, RfdPayload(digest: rel.cancelDigest!));
+          reply = await _pack(
+            local,
+            from,
+            RfdPayload(digest: rel.cancelDigest!),
+          );
         }
         transitionRelationship(rel.state, RelationshipEvent.receiveCancel);
         await store.put(Relationship.none(local.id, from));

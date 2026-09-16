@@ -105,7 +105,9 @@ abstract final class Tsp {
       case TspScheme.hpkeBase:
         final key = receiver.encryptionKey;
         if (key == null) {
-          throw TspInvalidInputException('receiver ${receiver.id} has no encryption key');
+          throw TspInvalidInputException(
+            'receiver ${receiver.id} has no encryption key',
+          );
         }
         final sealed = await Hpke.sealBase(
           recipient: key,
@@ -114,13 +116,18 @@ abstract final class Tsp {
           plaintext: encoded.frame,
           ephemeral: options.ephemeral,
         );
-        body = (CesrWriter()
-              ..variable(TspCodes.hpkeBaseCiphertext, [...sealed.enc, ...sealed.ciphertext]))
-            .takeBytes();
+        body =
+            (CesrWriter()..variable(TspCodes.hpkeBaseCiphertext, [
+                  ...sealed.enc,
+                  ...sealed.ciphertext,
+                ]))
+                .takeBytes();
       case TspScheme.sealedBox:
         final key = receiver.encryptionKey;
         if (key == null) {
-          throw TspInvalidInputException('receiver ${receiver.id} has no encryption key');
+          throw TspInvalidInputException(
+            'receiver ${receiver.id} has no encryption key',
+          );
         }
         if (key.kem != TspKem.x25519) {
           throw const TspUnsupportedException(
@@ -128,26 +135,36 @@ abstract final class Tsp {
           );
         }
         if (options.ephemeral != null && options.ephemeral!.length != 32) {
-          throw const TspInvalidInputException('sealed box skEm must be 32 bytes');
+          throw const TspInvalidInputException(
+            'sealed box skEm must be 32 bytes',
+          );
         }
         final ct = SealedBox.seal(
           encoded.frame,
           key.bytes,
           ephemeralSecretKey: options.ephemeral,
         );
-        body = (CesrWriter()..variable(TspCodes.sealedBoxCiphertext, ct)).takeBytes();
+        body = (CesrWriter()..variable(TspCodes.sealedBoxCiphertext, ct))
+            .takeBytes();
     }
 
-    final signable = (CesrWriter()
-          ..count(TspCodes.envelope, (fields.length + body.length) ~/ 3)
-          ..raw(fields)
-          ..raw(body))
-        .takeBytes();
+    final signable =
+        (CesrWriter()
+              ..count(TspCodes.envelope, (fields.length + body.length) ~/ 3)
+              ..raw(fields)
+              ..raw(body))
+            .takeBytes();
     final signature = await sender.signingKey.sign(signable);
-    final out = (CesrWriter()
-          ..raw(signable)
-          ..raw(encodeSignatureAttachment(sender.signingKey.algorithm, signature)))
-        .takeBytes();
+    final out =
+        (CesrWriter()
+              ..raw(signable)
+              ..raw(
+                encodeSignatureAttachment(
+                  sender.signingKey.algorithm,
+                  signature,
+                ),
+              ))
+            .takeBytes();
     if (out.length > limits.maxMessageLength) {
       throw TspInvalidInputException(
         'message of ${out.length} bytes exceeds the limit of ${limits.maxMessageLength}',
@@ -186,10 +203,14 @@ abstract final class Tsp {
     final p = _parse(message, limits);
 
     if (p.sender != sender.id) {
-      throw const TspSenderException('the envelope sender is not the expected sender');
+      throw const TspSenderException(
+        'the envelope sender is not the expected sender',
+      );
     }
     if (p.receiver != null && p.receiver != receiver.id) {
-      throw const TspReceiverException('the message is not addressed to this receiver');
+      throw const TspReceiverException(
+        'the message is not addressed to this receiver',
+      );
     }
 
     if (p.signature.algorithm != sender.verificationKey.algorithm) {
@@ -199,7 +220,9 @@ abstract final class Tsp {
     }
     final signable = Uint8List.sublistView(message, 0, p.contentEnd);
     if (!await sender.verificationKey.verify(signable, p.signature.signature)) {
-      throw const TspSignatureException('the message signature does not verify');
+      throw const TspSignatureException(
+        'the message signature does not verify',
+      );
     }
 
     final fields = Uint8List.fromList(
@@ -214,7 +237,9 @@ abstract final class Tsp {
       case TspScheme.hpkeBase:
         final key = receiver.decryptionKey;
         if (key == null) {
-          throw TspUnsupportedException('receiver ${receiver.id} has no decryption key');
+          throw TspUnsupportedException(
+            'receiver ${receiver.id} has no decryption key',
+          );
         }
         kem = key.kem;
         if (body.length < key.kem.encLength + 16) {
@@ -222,7 +247,9 @@ abstract final class Tsp {
         }
         plaintext = await Hpke.openBase(
           recipient: key,
-          enc: Uint8List.fromList(Uint8List.sublistView(body, 0, key.kem.encLength)),
+          enc: Uint8List.fromList(
+            Uint8List.sublistView(body, 0, key.kem.encLength),
+          ),
           info: TspCodes.hpkeInfo,
           aad: fields,
           ciphertext: Uint8List.sublistView(body, key.kem.encLength),
@@ -303,7 +330,8 @@ abstract final class Tsp {
       throw const TspMalformedException('missing YTSP version marker');
     }
     content.pos += 3;
-    final vw = message[content.pos] << 16 |
+    final vw =
+        message[content.pos] << 16 |
         message[content.pos + 1] << 8 |
         message[content.pos + 2];
     if (vw >> 18 != Cesr.dash) {
@@ -344,8 +372,11 @@ abstract final class Tsp {
     final int bodyStart;
     final int bodyEnd;
     final id = content.peekVariableIdentifier();
-    if (id == TspCodes.hpkeBaseCiphertext || id == TspCodes.sealedBoxCiphertext) {
-      scheme = id == TspCodes.hpkeBaseCiphertext ? TspScheme.hpkeBase : TspScheme.sealedBox;
+    if (id == TspCodes.hpkeBaseCiphertext ||
+        id == TspCodes.sealedBoxCiphertext) {
+      scheme = id == TspCodes.hpkeBaseCiphertext
+          ? TspScheme.hpkeBase
+          : TspScheme.sealedBox;
       final range = content.readVariableRange(
         id!,
         'ciphertext',
@@ -361,7 +392,9 @@ abstract final class Tsp {
       content.expectEnd('envelope');
       bodyEnd = content.pos;
     } else {
-      throw const TspMalformedException('expected a ciphertext or payload frame');
+      throw const TspMalformedException(
+        'expected a ciphertext or payload frame',
+      );
     }
 
     final signature = decodeSignatureAttachment(r, 'message');

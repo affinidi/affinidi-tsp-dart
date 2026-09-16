@@ -13,10 +13,13 @@ final class SpecVectors {
   SpecVectors._(this.identifiers, this.vectors);
 
   factory SpecVectors.load([String path = 'test/fixtures/spec-vectors.json']) {
-    final json = jsonDecode(File(path).readAsStringSync()) as Map<String, Object?>;
+    final json =
+        jsonDecode(File(path).readAsStringSync()) as Map<String, Object?>;
     return SpecVectors._(
-      (json['identifiers']! as Map<String, Object?>).cast<String, Map<String, Object?>>(),
-      (json['vectors']! as Map<String, Object?>).cast<String, Map<String, Object?>>(),
+      (json['identifiers']! as Map<String, Object?>)
+          .cast<String, Map<String, Object?>>(),
+      (json['vectors']! as Map<String, Object?>)
+          .cast<String, Map<String, Object?>>(),
     );
   }
 
