@@ -6,6 +6,9 @@ linter:
     - public_member_api_docs
 
 analyzer:
+  # pq/ is its own package, analysed from its own directory.
+  exclude:
+    - pq/**
   language:
     strict-casts: true
     strict-raw-types: true
