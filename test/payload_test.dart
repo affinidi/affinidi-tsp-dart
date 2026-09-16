@@ -243,6 +243,31 @@ void main() {
     ]);
   });
 
+  test(
+    'a route at the default hop limit round-trips; one more is refused',
+    () async {
+      final inner = await Tsp.pack(
+        sender: a.private,
+        receiver: b.public,
+        payload: ScsPayload(utf8.encode('inner')),
+        scheme: TspScheme.signedOnly,
+      );
+      final max = TspLimits.defaults.maxHops;
+      expect(max, 64);
+      final route = [for (var i = 0; i < max; i++) 'did:example:h$i'];
+      final routed = await roundTrip(
+        HopPayload(hops: route, inner: inner.bytes),
+      );
+      expect((routed.payload as HopPayload).hops, route);
+      await expectLater(
+        roundTrip(
+          HopPayload(hops: [...route, 'did:example:x'], inner: inner.bytes),
+        ),
+        throwsA(isA<TspException>()),
+      );
+    },
+  );
+
   test('a NULL envelope receiver round-trips', () async {
     final m = await roundTrip(
       RfiPayload(),
