@@ -34,21 +34,14 @@ void main() {
   test('XCTL carries upper-layer control data', () async {
     final m = await roundTrip(CtlPayload(utf8.encode('{"op":"x"}')));
     expect(m.payload, isA<CtlPayload>());
-    expect(utf8.decode((m.payload as CtlPayload).data!), '{"op":"x"}');
+    expect(utf8.decode((m.payload as CtlPayload).data), '{"op":"x"}');
   });
 
-  test('XSCS carries an arbitrary pre-encoded CESR stream', () async {
-    final stream = Uint8List.fromList([
-      ...base64Url.decode('-HAB'),
-      ...base64Url.decode('4BAB'),
-      1,
-      2,
-      3,
-    ]);
-    final m = await roundTrip(ScsPayload.stream(stream));
+  test('XSCS body is exactly one Bytes primitive', () async {
+    final m = await roundTrip(ScsPayload(utf8.encode('hi')));
     final p = m.payload as ScsPayload;
-    expect(p.stream, stream);
-    expect(p.data, isNull);
+    expect(utf8.decode(p.data), 'hi');
+    expect(base64Url.encode(p.stream), '5BABAGhp');
   });
 
   test('XPAD carries its nonce and padding', () async {

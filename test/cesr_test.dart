@@ -148,7 +148,7 @@ void main() {
             receiver: b.private,
             sender: a.public,
           );
-          expect((m.payload as ScsPayload).data!.length, n);
+          expect((m.payload as ScsPayload).data.length, n);
           expect(m.payload.padding.length, n ~/ 2);
         }
       }

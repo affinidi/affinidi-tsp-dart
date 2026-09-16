@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import '../cesr/cesr.dart';
 import '../cesr/tsp_codes.dart';
 import '../crypto/digest.dart';
-import '../errors.dart';
 import '../keys/keys.dart';
 
 final Uint8List _empty = Uint8List(0);
@@ -172,53 +171,27 @@ sealed class TspPayload {
   String get typeCode;
 }
 
-/// Shared shape of XSCS and XCTL: a generic CESR stream (`-A##`).
+/// Shared shape of XSCS and XCTL: application bytes carried as exactly one
+/// Bytes primitive inside a `-A##` group — the form the specification's
+/// vectors and the ToIP reference use. The format of [data] is the upper
+/// layer's; TSP does not interpret it. See
+/// https://github.com/trustoverip/tswg-tsp-specification/issues/77.
 sealed class StreamPayload extends TspPayload {
-  StreamPayload._(Uint8List data, {super.padding})
-    : stream = _singleBytes(data);
+  StreamPayload._(List<int> data, {super.padding})
+    : data = Uint8List.fromList(data);
 
-  StreamPayload._stream(List<int> stream, {super.padding})
-    : stream = Uint8List.fromList(stream) {
-    if (this.stream.length % 3 != 0) {
-      throw const TspInvalidInputException(
-        'a CESR stream must be a whole number of quadlets',
-      );
-    }
-  }
+  /// The application bytes.
+  final Uint8List data;
 
-  /// The content of the `-A` group, as a CESR stream.
-  final Uint8List stream;
-
-  /// The bytes of the stream's single Bytes primitive, or `null` if the
-  /// stream is anything else (e.g. interleaved `-H` groups, which the upper
-  /// layer parses itself).
-  Uint8List? get data {
-    try {
-      final r = CesrReader(stream);
-      final d = r.readVariable(
-        TspCodes.bytes,
-        'payload body',
-        maxLength: stream.length,
-      );
-      if (!r.isAtEnd) return null;
-      return d;
-    } on TspException {
-      return null;
-    }
-  }
-
-  static Uint8List _singleBytes(Uint8List data) =>
+  /// The content of the `-A` group: [data] as a single Bytes primitive.
+  Uint8List get stream =>
       (CesrWriter()..variable(TspCodes.bytes, data)).takeBytes();
 }
 
 /// `XSCS`: an upper-layer (application) message.
 final class ScsPayload extends StreamPayload {
   /// Carries [data] as the single Bytes primitive of the stream.
-  ScsPayload(List<int> data, {super.padding})
-    : super._(Uint8List.fromList(data));
-
-  /// Carries an arbitrary pre-encoded CESR [stream].
-  ScsPayload.stream(super.stream, {super.padding}) : super._stream();
+  ScsPayload(super.data, {super.padding}) : super._();
 
   @override
   String get typeCode => 'XSCS';
@@ -227,11 +200,7 @@ final class ScsPayload extends StreamPayload {
 /// `XCTL`: a generic upper-layer control message.
 final class CtlPayload extends StreamPayload {
   /// Carries [data] as the single Bytes primitive of the stream.
-  CtlPayload(List<int> data, {super.padding})
-    : super._(Uint8List.fromList(data));
-
-  /// Carries an arbitrary pre-encoded CESR [stream].
-  CtlPayload.stream(super.stream, {super.padding}) : super._stream();
+  CtlPayload(super.data, {super.padding}) : super._();
 
   @override
   String get typeCode => 'XCTL';

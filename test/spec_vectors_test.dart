@@ -71,7 +71,7 @@ void main() {
       expect(m.receiver, sv.id('bob'));
       expect(m.payloadSender, sv.id('alice'));
       final p = m.payload as ScsPayload;
-      expect(utf8.decode(p.data!), 'hello world');
+      expect(utf8.decode(p.data), 'hello world');
       expect(p.padding, isEmpty);
       expect(
         await reencodeFrame(m, m.scheme),
@@ -93,7 +93,7 @@ void main() {
       expect(m.scheme, TspScheme.hpkeBase);
       expect(m.kem, TspKem.x25519);
       expect(m.payloadSender, isNull);
-      expect(utf8.decode((m.payload as ScsPayload).data!), 'hello world');
+      expect(utf8.decode((m.payload as ScsPayload).data), 'hello world');
       expect(
         await reencodeFrame(m, m.scheme),
         b64(vec('direct-hpke-base')['payload']! as String),
@@ -113,7 +113,7 @@ void main() {
       expect(m.scheme, TspScheme.signedOnly);
       expect(m.confidential, isFalse);
       expect(
-        utf8.decode((m.payload as ScsPayload).data!),
+        utf8.decode((m.payload as ScsPayload).data),
         'public announcement!',
       );
       expect(
@@ -229,7 +229,7 @@ void main() {
         receiver: sv.privateVid('nested_bob'),
         sender: sv.publicVid('nested_alice'),
       );
-      expect(utf8.decode((inner.payload as ScsPayload).data!), 'hello world');
+      expect(utf8.decode((inner.payload as ScsPayload).data), 'hello world');
       expect(
         await reencodeFrame(inner, inner.scheme),
         b64(vec('nested-direct')['innerPayload']! as String),

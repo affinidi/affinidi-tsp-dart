@@ -119,7 +119,7 @@ void main() {
       );
       expect(m.scheme, TspScheme.hpkeBase);
       expect(m.kem, TspKem.mlKem768X25519);
-      expect(utf8.decode((m.payload as ScsPayload).data!), 'hello world');
+      expect(utf8.decode((m.payload as ScsPayload).data), 'hello world');
     });
 
     test('classical keys refuse the post-quantum ciphertext', () async {

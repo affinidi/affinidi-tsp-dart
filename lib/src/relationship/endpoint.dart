@@ -334,11 +334,6 @@ final class TspEndpoint {
           );
         }
         final data = (message.payload as ScsPayload).data;
-        if (data == null) {
-          throw const TspUnsupportedException(
-            'the application stream is not a single Bytes primitive',
-          );
-        }
         return event(TspEndpointEventKind.message, r: rel, data: data);
 
       case CtlPayload() || PadPayload() || HopPayload():

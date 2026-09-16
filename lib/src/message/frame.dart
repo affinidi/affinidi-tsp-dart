@@ -444,11 +444,16 @@ DecodedFrame decodePayloadFrame({
     final padding = readPadding();
     final stream = r.readGroup(TspCodes.genericStream, 'generic CESR stream');
     r.expectEnd('payload frame');
-    final s = Uint8List.sublistView(stream.bytes, stream.pos, stream.end);
-    _checkLeadingBytesPrimitive(stream);
+    // Exactly one Bytes primitive, nothing after it (issue #77).
+    final data = stream.readVariable(
+      TspCodes.bytes,
+      'payload body',
+      maxLength: stream.remaining,
+    );
+    stream.expectEnd('generic CESR stream');
     payload = _is(TspCodes.xscs, plaintext, at)
-        ? ScsPayload.stream(s, padding: padding)
-        : CtlPayload.stream(s, padding: padding);
+        ? ScsPayload(data, padding: padding)
+        : CtlPayload(data, padding: padding);
   } else if (_is(TspCodes.xpad, plaintext, at)) {
     final nonce = r.readFixed(TspCodes.nonce, nonceLength, 'nonce');
     final padding = readPadding();
@@ -581,30 +586,4 @@ Future<bool> verifyReferralSignature({
     _bareVidField(referral.vid, limits),
   ]);
   return verificationKey.verify(data, sig);
-}
-
-/// A stream whose first primitive is a Bytes code claiming to span the whole
-/// stream is held to canonical encoding, so a non-zero lead byte is refused
-/// as malformed rather than surfacing later as an opaque stream. Streams of
-/// other shapes (interleaved groups) are the upper layer's to parse.
-void _checkLeadingBytesPrimitive(CesrReader stream) {
-  final probe = CesrReader(stream.bytes, start: stream.pos, end: stream.end);
-  if (probe.peekVariableIdentifier() != TspCodes.bytes) return;
-  final b = probe.bytes;
-  final at = probe.pos;
-  final sel = b[at] >> 2;
-  final int declared;
-  if (sel >= Cesr.d0 + 4 && sel <= Cesr.d0 + 6) {
-    declared = 3 + (((b[at + 1] & 0x0f) << 8) | b[at + 2]) * 3;
-  } else if (probe.remaining >= 6) {
-    declared = 6 + ((b[at + 3] << 16) | (b[at + 4] << 8) | b[at + 5]) * 3;
-  } else {
-    return;
-  }
-  if (declared != probe.remaining) return;
-  probe.readVariableRange(
-    TspCodes.bytes,
-    'payload body',
-    maxLength: probe.remaining,
-  );
 }

@@ -146,8 +146,8 @@ Keys are interfaces (`TspSigningKey`, `TspVerificationKey`,
 private key — a KMS, a wallet, a secure element with X25519 — plugs in via
 `CallbackSigningKey` and `X25519DecryptionKey.fromAgreement`.
 
-Payload types: `ScsPayload` (application data, or an arbitrary CESR stream via
-`ScsPayload.stream`), `CtlPayload`, `PadPayload`, `RfiPayload` (with optional
+Payload types: `ScsPayload` (application bytes, carried as exactly one Bytes primitive —
+[spec issue #77](https://github.com/trustoverip/tswg-tsp-specification/issues/77)), `CtlPayload`, `PadPayload`, `RfiPayload` (with optional
 `Referral` / `Referral.signWith` and `Tsp.verifyReferral`), `RfaPayload`,
 `RfdPayload`, `HopPayload` (nested when `hops` is empty, routed otherwise; the
 inner message is carried unopened).

@@ -100,7 +100,7 @@ void main() {
             sender: alicePublic,
           );
           expect(
-            utf8.decode((opened.payload as ScsPayload).data!),
+            utf8.decode((opened.payload as ScsPayload).data),
             'hi via ${scheme.wireName}',
           );
         }
