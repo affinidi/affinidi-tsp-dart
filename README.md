@@ -221,11 +221,12 @@ and the ToIP reference:
 - **Cancel digest.** `TspEndpoint.cancel` names the invite's `Digest`, which
   both sides record; on receipt either `Digest` or `Reply_Digest` is
   recognised (§7.3).
-- **Hop limits.** Up to 32 VIDs in a hop list or reply path by default
-  (`TspLimits.maxHops`); the spec sets no limit, and other implementations
-  stop at 16 or 10.
-- **Generic stream.** `XSCS`/`XCTL` data is a single Bytes primitive inside
-  `-A##`; any other stream is kept verbatim in `stream`.
+- **Hop limits.** Up to 64 VIDs in a hop list or reply path by default
+  (`TspLimits.maxHops`); the spec sets no limit. 64 matches affinidi-tsp,
+  tsp-js and affinidi-tsp-go.
+- **Application body.** `XSCS`/`XCTL` data is exactly one Bytes primitive
+  inside `-A##`; any other body is refused
+  ([tswg-tsp-specification#77](https://github.com/trustoverip/tswg-tsp-specification/issues/77)).
 
 ## Security considerations
 

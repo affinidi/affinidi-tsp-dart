@@ -1,3 +1,8 @@
+## Unreleased
+
+- `TspLimits.maxHops` defaults to 64 (was 32), matching affinidi-tsp, tsp-js
+  and affinidi-tsp-go.
+
 ## 0.1.0
 
 - Initial release: TSP Rev 3 (`YTSP-AAC`).

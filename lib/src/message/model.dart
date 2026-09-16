@@ -60,7 +60,7 @@ final class TspLimits {
   const TspLimits({
     this.maxMessageLength = 16 * 1024 * 1024,
     this.maxVidLength = 64 * 1024,
-    this.maxHops = 32,
+    this.maxHops = 64,
     this.maxPaddingLength = 1024 * 1024,
   });
 
@@ -73,7 +73,8 @@ final class TspLimits {
   /// Largest accepted VID, in UTF-8 bytes.
   final int maxVidLength;
 
-  /// Largest number of VIDs in a hop list or reply path.
+  /// Largest number of VIDs in a hop list or reply path. The specification
+  /// sets no maximum; 64 matches affinidi-tsp, tsp-js and affinidi-tsp-go.
   final int maxHops;
 
   /// Largest accepted padding field, in bytes.
