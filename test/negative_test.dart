@@ -217,6 +217,30 @@ void main() {
     },
   );
 
+  test(
+    'a non-canonical lead byte in the application body is malformed',
+    () async {
+      final a = identity('did:example:a', 1);
+      final b = identity('did:example:b', 2);
+      final packed = await Tsp.pack(
+        sender: a.private,
+        receiver: b.public,
+        payload: ScsPayload([7, 7]), // 5BAB 00 07 07
+        scheme: TspScheme.signedOnly,
+      );
+      final body = indexOfBytes(packed.bytes, [0, 7, 7]);
+      final m = await resign(
+        packed.bytes,
+        a.private.signingKey,
+        (s) => s[body] = 1,
+      );
+      await expectLater(
+        Tsp.open(m, receiver: b.private, sender: a.public),
+        throwsA(isA<TspMalformedException>()),
+      );
+    },
+  );
+
   test('a sealed-box payload without the ESSR sender is refused', () async {
     final a = identity('did:example:a', 1);
     final b = identity('did:example:b', 2);

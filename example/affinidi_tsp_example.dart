@@ -32,7 +32,9 @@ Future<void> main() async {
   // 1. Alice invites Bob (TSP_RFI). Deliver `invite.bytes` over any transport.
   final invite = await aliceEndpoint.invite(from: alice.id, to: bob.id);
   final received = await bobEndpoint.receive(invite.bytes);
-  stdout.writeln('Bob received an ${received.kind.wireName} from ${received.from}');
+  stdout.writeln(
+    'Bob received an ${received.kind.wireName} from ${received.from}',
+  );
 
   // 2. Bob accepts (TSP_RFA), echoing the invite digest.
   final accept = await bobEndpoint.accept(from: bob.id, to: alice.id);

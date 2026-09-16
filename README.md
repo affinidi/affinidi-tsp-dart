@@ -213,6 +213,12 @@ and the ToIP reference:
   `Signature_new` (no vector covers this case).
 - **Nested messages must be confidential** (§4.1): signed-only `XHOP` is
   refused on pack and open.
+- **Cancel digest.** `TspEndpoint.cancel` names the invite's `Digest`, which
+  both sides record; on receipt either `Digest` or `Reply_Digest` is
+  recognised (§7.3).
+- **Hop limits.** Up to 32 VIDs in a hop list or reply path by default
+  (`TspLimits.maxHops`); the spec sets no limit, and other implementations
+  stop at 16 or 10.
 - **Generic stream.** `XSCS`/`XCTL` data is a single Bytes primitive inside
   `-A##`; any other stream is kept verbatim in `stream`.
 

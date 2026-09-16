@@ -107,14 +107,12 @@ final class Relationship {
       state == RelationshipState.inviteReceived ||
       state == RelationshipState.bidirectional;
 
-  /// The digest a cancel from the local side names: the digest it previously
-  /// received (§7.3) — the peer's invite digest if we were invited, the
-  /// peer's reply digest if we invited — or our own outstanding invite's.
-  TspDigest? get cancelDigest => switch (state) {
-    RelationshipState.none => null,
-    RelationshipState.inviteSent || RelationshipState.inviteReceived => digest,
-    RelationshipState.bidirectional => initiatedLocally ? replyDigest : digest,
-  };
+  /// The digest a cancel from the local side names (§7.3 allows the Digest or
+  /// the Reply_Digest). This is always the invite's `Digest`: both sides of an
+  /// exchange record it, whereas some implementations do not recognise their
+  /// own `Reply_Digest` when it is named back to them.
+  TspDigest? get cancelDigest =>
+      state == RelationshipState.none ? null : digest;
 
   /// Whether [named] identifies this relationship.
   bool isNamedBy(TspDigest named) =>
