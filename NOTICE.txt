@@ -1,0 +1,9 @@
+Affinidi TSP for Dart
+Copyright 2026 Affinidi
+
+Test fixtures:
+- test/fixtures/spec-vectors.json: Appendix A of the ToIP Trust Spanning
+  Protocol specification (trustoverip/tswg-tsp-specification).
+- test/fixtures/rfc9180_a21_base.json and
+  pq/test/fixtures/hpke_pq_mlkem768_x25519.json: CFRG HPKE test vectors
+  (RFC 9180, draft-ietf-hpke-pq), as distributed with the Rust hpke crate.

@@ -269,6 +269,27 @@ void main() {
     );
   });
 
+  test('looksLikeTsp classifies short and long frames, not DIDComm', () async {
+    final small = await Tsp.pack(
+      sender: a.private,
+      receiver: b.public,
+      payload: ScsPayload([1]),
+    );
+    final large = await Tsp.pack(
+      sender: a.private,
+      receiver: b.public,
+      payload: ScsPayload(Uint8List(20000)),
+    );
+    expect(Tsp.looksLikeTsp(small.bytes), isTrue);
+    expect(small.bytes.first, Tsp.magicByte);
+    expect(large.bytes.first, Tsp.magicByteLong);
+    expect(
+      Tsp.looksLikeTsp(utf8.encode('{"typ":"application/didcomm-plain+json"}')),
+      isFalse,
+    );
+    expect(Tsp.looksLikeTsp(utf8.encode('eyJhbGciOiJFZERTQSJ9')), isFalse);
+  });
+
   test('peek reports what an intermediary sees', () async {
     for (final scheme in TspScheme.values) {
       final packed = await Tsp.pack(

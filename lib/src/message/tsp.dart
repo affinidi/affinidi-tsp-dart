@@ -52,6 +52,20 @@ final class _Parsed {
 /// final message = await Tsp.open(packed.bytes, receiver: bobPrivate, sender: alicePublic);
 /// ```
 abstract final class Tsp {
+  /// Leading byte of a message framed with a short `-E##` count code.
+  static const int magicByte = 0xf8;
+
+  /// Leading byte of a message framed with a long `--E#####` count code
+  /// (messages over about 12 KB).
+  static const int magicByteLong = 0xfb;
+
+  /// Cheap ingress classifier: whether [bytes] start like a binary TSP
+  /// message. DIDComm (JSON or compact JWS) never starts with either byte.
+  /// This does not validate anything; use [peek] or [open] for that.
+  static bool looksLikeTsp(List<int> bytes) =>
+      bytes.isNotEmpty &&
+      (bytes.first == magicByte || bytes.first == magicByteLong);
+
   /// Packs [payload] from [sender] to [receiver] under [scheme].
   ///
   /// Returns the wire bytes and, for an invite or accept, the self-addressing
