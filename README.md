@@ -37,7 +37,7 @@ and on mobile.
 | Payloads | `XSCS`, `XCTL`, `XPAD`, `XRFI` (incl. `Reply_Path` and `Referral_Field`), `XRFA`, `XRFD`, `XHOP` (nested and routed); padding field; ESSR payload sender (NULL or present) |
 | Digests | Self-addressing TSP digests, SHA2-256 (`I`) and Blake2b-256 (`F`), computed on pack and verified on open |
 | Confidentiality | HPKE-Base (RFC 9180, DHKEM(X25519)/HKDF-SHA256/ChaCha20Poly1305), libsodium sealed box, signed-only |
-| Post-quantum | MLKEM768-X25519 hybrid KEM and ML-DSA-65 via the companion package [`affinidi_tsp_pq`](pq/) |
+| Post-quantum | MLKEM768-X25519 hybrid KEM and ML-DSA-65 via the companion package [`tsp_pq`](pq/) |
 | Relationships | State machine (`none` / `invite-sent` / `invite-received` / `bidirectional`), invite race tie-break by lower digest, decline/cancel, application messages refused without a relationship |
 | ssi | `DidManager` → `PrivateVid` (keys stay in the wallet), `SsiVidResolver` (did:key, did:peer, did:web, did:webvh via `ssi`), `DidPeer4Resolver` |
 | Hardening | Size limits checked before allocation, trailing bytes rejected, unknown MAJOR version rejected, only typed `TspException`s on untrusted input |
@@ -52,7 +52,7 @@ RFC 9180 test vectors.
 
 ```yaml
 dependencies:
-  affinidi_tsp: ^0.1.0
+  tsp: ^0.1.0
   ssi: ^3.9.0
 ```
 
@@ -63,7 +63,7 @@ Requires Dart 3.8 or later.
 ### With ssi (DidManager and DID resolution)
 
 ```dart
-import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:tsp/affinidi_tsp.dart';
 import 'package:ssi/ssi.dart';
 
 final wallet = PersistentWallet(InMemoryKeyStore());
@@ -164,7 +164,7 @@ use it in production.
 ### Post-quantum
 
 ```dart
-import 'package:affinidi_tsp_pq/affinidi_tsp_pq.dart';
+import 'package:tsp_pq/affinidi_tsp_pq.dart';
 
 final pqAlice = PrivateVid(
   id: aliceId,
@@ -194,7 +194,7 @@ untrusted bytes never throws anything else.
   `direct-hpke-base-pq` opens (the specification publishes no ephemeral
   material for it).
 - **RFC 9180** A.2.1 (DHKEM(X25519), HKDF-SHA256, ChaCha20Poly1305, Base).
-- **draft-ietf-hpke-pq** MLKEM768-X25519 vector (in `affinidi_tsp_pq`).
+- **draft-ietf-hpke-pq** MLKEM768-X25519 vector (in `tsp_pq`).
 - A conformance driver lives in `tsp-conformance/drivers/dart`.
 
 ```sh
