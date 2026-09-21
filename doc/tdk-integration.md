@@ -1,26 +1,26 @@
 # Integrating TSP into the Affinidi TDK for Dart
 
 **Headline:** keep the protocol in a standalone library, exactly as DIDComm is
-split today. `affinidi_tsp` (this repository) plays the role of `didcomm`; the
+split today. `tsp` (this repository) plays the role of `didcomm`; the
 TDK gains one package, `packages/tsp/tsp_client` →
 **`affinidi_tdk_tsp_client`**, that plays the role of
 `affinidi_tdk_didcomm_mediator_client`: it owns transport, mediator
 authentication and pickup, persistent relationship state, and a `DidManager`-
-first convenience API. Post-quantum stays opt-in through `affinidi_tsp_pq`.
+first convenience API. Post-quantum stays opt-in through `tsp_pq`.
 Nothing in the existing DIDComm packages changes.
 
 Read this with the DIDComm layout in mind:
 
 | DIDComm today | TSP proposal |
 |---|---|
-| `didcomm` (standalone repo, pub.dev) — message model, JWE/JWS, key selection from `ssi` | `affinidi_tsp` (standalone repo, pub.dev) — CESR, HPKE/sealed box, payloads, SAIDs, relationship state machine, `ssi` integration |
-| — | `affinidi_tsp_pq` (same repo, pub.dev) — ML-KEM-768/X25519 and ML-DSA-65 key types |
+| `didcomm` (standalone repo, pub.dev) — message model, JWE/JWS, key selection from `ssi` | `tsp` (standalone repo, pub.dev) — CESR, HPKE/sealed box, payloads, SAIDs, relationship state machine, `ssi` integration |
+| — | `tsp_pq` (same repo, pub.dev) — ML-KEM-768/X25519 and ML-DSA-65 key types |
 | `packages/didcomm/didcomm_mediator_client` → `affinidi_tdk_didcomm_mediator_client` | `packages/tsp/tsp_client` → `affinidi_tdk_tsp_client` |
 | `packages/didcomm/vdsp`, `vdip` (protocols over DIDComm) | future protocols over TSP use `XSCS`/`XCTL` payloads through `affinidi_tdk_tsp_client` |
 
 ## 1. What goes where
 
-### In the library (`affinidi_tsp`) — already done
+### In the library (`tsp`) — already done
 
 Everything that is protocol and has no I/O:
 
@@ -78,7 +78,7 @@ Everything that touches the network, storage or Affinidi services:
 
 What it should **not** do: re-implement any wire format, crypto or state
 transition. If the TDK package needs a protocol change, it goes into
-`affinidi_tsp` first.
+`tsp` first.
 
 ## 2. Workspace and melos wiring
 
@@ -90,7 +90,7 @@ from it.
    ```yaml
    # packages/tsp/tsp_client/pubspec.yaml
    name: affinidi_tdk_tsp_client
-   description: Trust Spanning Protocol (TSP) client for the Affinidi TDK — mediator transport, pickup, and persistent relationships over affinidi_tsp.
+  description: Trust Spanning Protocol (TSP) client for the Affinidi TDK — mediator transport, pickup, and persistent relationships over tsp.
    version: 0.1.0
    homepage: https://github.com/affinidi/affinidi-tdk-dart/tree/main/packages/tsp/tsp_client
    repository: https://github.com/affinidi/affinidi-tdk-dart
@@ -101,7 +101,7 @@ from it.
    resolution: workspace
 
    dependencies:
-     affinidi_tsp: ^0.1.0
+    tsp: ^0.1.0
      affinidi_tdk_didcomm_mediator_client: ^2.0.3  # AuthorizationProvider, mediator pickup
      dio: ^5.9.0
      ssi: ^3.3.0
@@ -133,7 +133,7 @@ from it.
    `affinidi_tdk_tsp` at `packages/tsp/tsp`. The first is the better fix
    because it also restores the DIDComm client's tests.
 
-5. **Post-quantum is a separate decision.** `affinidi_tsp_pq` requires Dart
+5. **Post-quantum is a separate decision.** `tsp_pq` requires Dart
    `^3.10.0` (its `pqcrypto` dependency does) and is not needed by the client.
    Adding it to the workspace raises the effective SDK floor for the whole
    workspace resolution; do it only when the TDK moves to Dart 3.10 (which the
@@ -146,7 +146,7 @@ from it.
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:tsp/affinidi_tsp.dart';
 import 'package:ssi/ssi.dart';
 
 import 'transport/tsp_transport.dart';
@@ -242,7 +242,7 @@ class TspMediatorTransport implements TspTransport {
 
 ## 5. Checklist for the Dart team
 
-- [ ] Publish `affinidi_tsp` (and, when needed, `affinidi_tsp_pq`) from
+- [ ] Publish `tsp` (and, when needed, `tsp_pq`) from
       `affinidi/affinidi-tsp-dart` with the same release pipeline as `didcomm`.
 - [ ] Fix or sidestep the `*_client*` melos test filter (§2.4).
 - [ ] Add `packages/tsp/tsp_client` to the workspace; implement transport,
