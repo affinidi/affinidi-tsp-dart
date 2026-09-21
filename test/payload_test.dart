@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:tsp/affinidi_tsp.dart';
 import 'package:test/test.dart';
 
 import 'support/fixtures.dart';

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:affinidi_tsp/crypto.dart';
+import 'package:tsp/crypto.dart';
 import 'package:pqcrypto/pqcrypto.dart';
 
 /// The MLKEM768-X25519 hybrid KEM (HPKE KEM id `0x647a`).

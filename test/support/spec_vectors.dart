@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:tsp/affinidi_tsp.dart';
 
 /// Decodes unpadded base64url (the qb64 text domain transcodes to binary).
 Uint8List b64(String s) =>

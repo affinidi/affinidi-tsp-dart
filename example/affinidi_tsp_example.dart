@@ -6,7 +6,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:tsp/affinidi_tsp.dart';
 import 'package:ssi/ssi.dart';
 
 Future<PrivateVid> createIdentity(String keyId) async {

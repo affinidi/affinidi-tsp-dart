@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:tsp/affinidi_tsp.dart';
 import 'package:pqcrypto/pqcrypto.dart';
 
 import 'mlkem768_x25519.dart';

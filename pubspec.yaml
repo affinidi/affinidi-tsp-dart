@@ -1,4 +1,4 @@
-name: affinidi_tsp
+name: tsp
 description: >-
   Trust Spanning Protocol (TSP) Rev 3 for Dart: CESR framing, HPKE-Base,
   libsodium sealed box, signed-only messages, relationship control and an

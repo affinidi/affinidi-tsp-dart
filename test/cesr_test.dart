@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:affinidi_tsp/affinidi_tsp.dart';
-import 'package:affinidi_tsp/src/cesr/cesr.dart';
+import 'package:tsp/affinidi_tsp.dart';
+import 'package:tsp/src/cesr/cesr.dart';
 import 'package:test/test.dart';
 
 import 'support/fixtures.dart';
