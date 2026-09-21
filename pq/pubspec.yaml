@@ -1,6 +1,6 @@
-name: tsp_pq
+name: affinidi_tsp_pq
 description: >-
-  Post-quantum key types for tsp: the MLKEM768-X25519 hybrid HPKE KEM
+  Post-quantum key types for affinidi_tsp: the MLKEM768-X25519 hybrid HPKE KEM
   (0x647a) and ML-DSA-65 signatures, on the pure-Dart pqcrypto package.
 version: 0.1.0
 repository: https://github.com/affinidi/affinidi-tsp-dart
@@ -17,7 +17,7 @@ platforms:
   windows:
 
 dependencies:
-  tsp: ^0.1.0
+  affinidi_tsp: ^0.1.0
   pqcrypto: ^0.4.1
   ssi: '>=3.9.0 <5.0.0'
 

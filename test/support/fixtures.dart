@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:tsp/affinidi_tsp.dart';
+import 'package:affinidi_tsp/affinidi_tsp.dart';
 
 /// A throwaway identity with deterministic keys derived from [seed].
 ({PrivateVid private, PublicVid public}) identity(String id, int seed) {

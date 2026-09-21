@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:tsp/crypto.dart';
+import 'package:affinidi_tsp/crypto.dart';
 import 'package:test/test.dart';
 
 Uint8List hex(String s) => Uint8List.fromList([

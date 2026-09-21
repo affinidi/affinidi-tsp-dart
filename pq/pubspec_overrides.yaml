@@ -1,4 +1,4 @@
 # Local development: use the sibling library instead of the published one.
 dependency_overrides:
-  tsp:
+  affinidi_tsp:
     path: ..

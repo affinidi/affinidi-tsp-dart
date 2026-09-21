@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Rename the packages to `affinidi_tsp` and `affinidi_tsp_pq` to avoid a name
+  collision with the existing Travelling Salesperson Problem package.
 - `TspLimits.maxHops` defaults to 64 (was 32), matching affinidi-tsp, tsp-js
   and affinidi-tsp-go.
 

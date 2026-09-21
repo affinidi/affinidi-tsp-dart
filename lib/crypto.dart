@@ -1,5 +1,5 @@
-/// Cryptographic building blocks of `tsp`, exported for key-type
-/// extensions (such as `tsp_pq`) and for test-vector verification.
+/// Cryptographic building blocks of `affinidi_tsp`, exported for key-type
+/// extensions (such as `affinidi_tsp_pq`) and for test-vector verification.
 ///
 /// Application code should not need this library: use `affinidi_tsp.dart`.
 library;

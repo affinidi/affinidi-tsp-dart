@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:tsp/affinidi_tsp.dart';
-import 'package:tsp/src/message/frame.dart';
+import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:affinidi_tsp/src/message/frame.dart';
 import 'package:test/test.dart';
 
 import 'support/spec_vectors.dart';

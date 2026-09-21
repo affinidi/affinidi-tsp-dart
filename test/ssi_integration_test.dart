@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:tsp/affinidi_tsp.dart';
+import 'package:affinidi_tsp/affinidi_tsp.dart';
 import 'package:ssi/ssi.dart';
 import 'package:test/test.dart';
 

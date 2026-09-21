@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:tsp/affinidi_tsp.dart';
-import 'package:tsp/crypto.dart' show Hpke;
-import 'package:tsp_pq/affinidi_tsp_pq.dart';
+import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:affinidi_tsp/crypto.dart' show Hpke;
+import 'package:affinidi_tsp_pq/affinidi_tsp_pq.dart';
 import 'package:test/test.dart';
 
 Uint8List hex(String s) => Uint8List.fromList([
