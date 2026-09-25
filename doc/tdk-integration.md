@@ -35,7 +35,10 @@ Everything that is protocol and has no I/O:
   `RelationshipStore` (interface + in-memory), `TspEndpoint`.
 - `ssi` integration: `DidManager.toTspPrivateVid()` /
   `toTspPublicVid()`, `SsiVidResolver` (any `ssi` `DidResolver`, pluggable
-  `TspKeyMapper`s), `DidPeer4Resolver`.
+  `TspKeyMapper`s), `DidPeer4Resolver`. The default inbound policy permits
+  only local `did:key` and `did:peer:4` resolution before authentication;
+  transport clients enabling `did:web` must use a resolver with an egress
+  policy that validates DNS results and redirects.
 
 It depends only on `ssi`, `crypto`, `cryptography` and `pinenacl`, all already
 in the TDK's dependency graph through `ssi` (`pinenacl` via `ed25519_hd_key`); it adds no new

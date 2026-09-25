@@ -11,6 +11,12 @@ abstract interface class VidResolver {
   Future<PublicVid> resolve(String vid);
 }
 
+/// A resolver that can reject identifiers before any unauthenticated I/O.
+abstract interface class PreAuthenticationVidResolver implements VidResolver {
+  /// Whether [vid] may be resolved before its message signature is verified.
+  bool allowsPreAuthenticationResolution(String vid);
+}
+
 /// A [VidResolver] over a fixed set of VIDs, e.g. peers learned out of band.
 final class StaticVidResolver implements VidResolver {
   /// Creates a resolver over [vids].
@@ -231,6 +237,12 @@ final class TspEndpoint {
     if (local == null) {
       throw const TspReceiverException(
         'the message is not addressed to a local identity',
+      );
+    }
+    if (resolver case final PreAuthenticationVidResolver preAuthResolver
+        when !preAuthResolver.allowsPreAuthenticationResolution(info.sender)) {
+      throw TspSenderException(
+        'sender VID ${info.sender} is not permitted before authentication',
       );
     }
     final PublicVid remote;

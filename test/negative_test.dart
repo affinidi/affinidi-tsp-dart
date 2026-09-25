@@ -276,7 +276,52 @@ void main() {
     await expectLater(openAsBob(m), throwsA(isA<TspSignatureException>()));
   });
 
+  test('an attachment with an additional signature is refused', () async {
+    final a = identity('did:example:a', 1);
+    final b = identity('did:example:b', 2);
+    final packed = await Tsp.pack(
+      sender: a.private,
+      receiver: b.public,
+      payload: ScsPayload([1]),
+      scheme: TspScheme.signedOnly,
+    );
+    const attachmentLength = 6 + 66;
+    final head = packed.bytes.sublist(
+      0,
+      packed.bytes.length - attachmentLength,
+    );
+    final attachment = packed.bytes.sublist(
+      packed.bytes.length - attachmentLength,
+    );
+    final attachmentCount = (attachment[1] & 0x0f) << 8 | attachment[2];
+    final signatureCount = (attachment[4] & 0x0f) << 8 | attachment[5];
+    final extraSignature = Uint8List(66)..[0] = attachment[6];
+    final alteredAttachment = <int>[
+      attachment[0],
+      (attachment[1] & 0xf0) | ((attachmentCount + 22) >> 8 & 0x0f),
+      (attachmentCount + 22) & 0xff,
+      attachment[3],
+      (attachment[4] & 0xf0) | ((signatureCount + 22) >> 8 & 0x0f),
+      (signatureCount + 22) & 0xff,
+      ...attachment.sublist(6),
+      ...extraSignature,
+    ];
+    await expectLater(
+      Tsp.open(
+        Uint8List.fromList([...head, ...alteredAttachment]),
+        receiver: b.private,
+        sender: a.public,
+      ),
+      throwsA(isA<TspMalformedException>()),
+    );
+  });
+
   test('size limits are enforced before parsing', () async {
+    expect(TspLimits.defaults.maxMessageLength, 4 * 1024 * 1024);
+    expect(
+      () => Tsp.peek(Uint8List(TspLimits.defaults.maxMessageLength + 1)),
+      throwsA(isA<TspMalformedException>()),
+    );
     await expectLater(
       Tsp.open(
         vector('direct-hpke-base'),

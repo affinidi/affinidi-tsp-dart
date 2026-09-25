@@ -170,11 +170,17 @@ DecodedSignature decodeSignatureAttachment(CesrReader r, String what) {
     } else {
       throw TspMalformedException('unsupported signature primitive in $what');
     }
-    first ??= sig;
+    if (first != null) {
+      throw TspMalformedException(
+        '$what signature group must contain exactly one signature',
+      );
+    }
+    first = sig;
   }
   if (first == null) {
     throw TspMalformedException('empty $what signature group');
   }
+  k.expectEnd('$what signature group');
   return first;
 }
 
@@ -283,13 +289,7 @@ Future<EncodedFrame> encodePayloadFrame({
             ]),
           );
         } else {
-          final a = referral.algorithm;
-          if (a == null) {
-            throw const TspInvalidInputException(
-              'referral signature has an unrecognised length',
-            );
-          }
-          alg = a;
+          alg = referral.algorithm;
           sig = referral.signature!;
         }
         final group = concatBytes([
@@ -496,6 +496,7 @@ DecodedFrame decodePayloadFrame({
       referral = Referral(
         vid: _decodeVid(vb, 'referral VID'),
         signature: sig.signature,
+        algorithm: sig.algorithm,
       );
     }
     final padding = readPadding();

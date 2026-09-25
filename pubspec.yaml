@@ -27,6 +27,7 @@ platforms:
 dependencies:
   crypto: ^3.0.6
   cryptography: ^2.7.0
+  meta: ^1.16.0
   pinenacl: ^0.6.0
   ssi: '>=3.9.0 <5.0.0'
 

@@ -153,6 +153,7 @@ void main() {
       );
       final p = m.payload as RfiPayload;
       expect(p.referral!.vid, newVid.private.id);
+      expect(p.referral!.algorithm, TspSignatureAlgorithm.ed25519);
       expect(p.digest, packed.digest);
       expect(
         await Tsp.verifyReferral(m, newVid.public.verificationKey),
@@ -173,6 +174,7 @@ void main() {
           referral: Referral(
             vid: p.referral!.vid,
             signature: p.referral!.signature!,
+            algorithm: p.referral!.algorithm,
           ),
         ),
         scheme: TspScheme.signedOnly,
@@ -206,6 +208,7 @@ void main() {
           referral: Referral(
             vid: newVid.private.id,
             signature: p.referral!.signature!,
+            algorithm: p.referral!.algorithm,
           ),
         ),
       );

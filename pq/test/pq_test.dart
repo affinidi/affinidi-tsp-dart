@@ -144,11 +144,11 @@ void main() {
       'pack is deterministic with fixed randomness and round-trips',
       () async {
         final eph = Uint8List(64)..fillRange(0, 64, 7);
-        Future<PackedTspMessage> pack() => Tsp.pack(
+        Future<PackedTspMessage> pack() => Tsp.packForTestVector(
           sender: priv('pq_alice'),
           receiver: pub('pq_bob'),
           payload: RfiPayload(nonce: Uint8List(16)),
-          options: TspPackOptions(ephemeral: eph),
+          ephemeral: eph,
         );
         final a = await pack();
         final b = await pack();

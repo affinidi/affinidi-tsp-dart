@@ -18,6 +18,18 @@ void main() {
   final sv = SpecVectors.load();
 
   group('DidPeer4Resolver', () {
+    test('default pre-authentication policy rejects network-capable VIDs', () {
+      final resolver = SsiVidResolver();
+      expect(
+        resolver.allowsPreAuthenticationResolution('did:web:127.0.0.1'),
+        isFalse,
+      );
+      expect(
+        resolver.allowsPreAuthenticationResolution('did:key:z6MkExample'),
+        isTrue,
+      );
+    });
+
     test(
       'resolves every classical Appendix A long form to its published keys',
       () async {
@@ -61,6 +73,22 @@ void main() {
       final doc = await peer4.resolveDid(alice['id']! as String);
       expect(doc.id, alice['id']);
     });
+
+    test(
+      'retains no more long forms than its configured cache capacity',
+      () async {
+        final peer4 = DidPeer4Resolver(maxCachedLongForms: 1);
+        final alice = sv.identifiers['alice']!;
+        final bob = sv.identifiers['bob']!;
+        await peer4.resolveDid(alice['longForm']! as String);
+        await peer4.resolveDid(bob['longForm']! as String);
+        await expectLater(
+          peer4.resolveDid(alice['id']! as String),
+          throwsA(isA<SsiException>()),
+        );
+        expect((await peer4.resolveDid(bob['id']! as String)).id, bob['id']);
+      },
+    );
 
     test('a tampered long form is refused', () async {
       final long = sv.identifiers['alice']!['longForm']! as String;

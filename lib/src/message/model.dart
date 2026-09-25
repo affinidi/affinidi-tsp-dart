@@ -58,7 +58,7 @@ enum TspScheme {
 final class TspLimits {
   /// Creates a set of limits.
   const TspLimits({
-    this.maxMessageLength = 16 * 1024 * 1024,
+    this.maxMessageLength = 4 * 1024 * 1024,
     this.maxVidLength = 64 * 1024,
     this.maxHops = 64,
     this.maxPaddingLength = 1024 * 1024,
@@ -128,15 +128,20 @@ final class PrivateVid {
 /// A VID introduced over an existing relationship (§7.2.5).
 final class Referral {
   /// A referral carrying an already-computed `Signature_new`.
-  Referral({required this.vid, required List<int> signature})
-    : signature = Uint8List.fromList(signature),
-      signingKey = null;
+  Referral({
+    required this.vid,
+    required List<int> signature,
+    required this.algorithm,
+  }) : signature = Uint8List.fromList(signature),
+       signingKey = null;
 
   /// A referral whose `Signature_new` is computed at pack time with the new
   /// VID's [signingKey]. The signature covers the invite's digest, so it
   /// cannot be made in advance.
-  Referral.signWith({required this.vid, required TspSigningKey this.signingKey})
-    : signature = null;
+  Referral.signWith({required this.vid, required TspSigningKey signingKey})
+    : signingKey = signingKey,
+      signature = null,
+      algorithm = signingKey.algorithm;
 
   /// `VID_new`.
   final String vid;
@@ -148,15 +153,8 @@ final class Referral {
   /// The new VID's signing key, when the signature is made at pack time.
   final TspSigningKey? signingKey;
 
-  /// The signature algorithm, inferred from the signature length.
-  TspSignatureAlgorithm? get algorithm {
-    final s = signature;
-    if (s == null) return signingKey?.algorithm;
-    for (final a in TspSignatureAlgorithm.values) {
-      if (a.signatureLength == s.length) return a;
-    }
-    return null;
-  }
+  /// The signature algorithm carried by the CESR signature primitive.
+  final TspSignatureAlgorithm algorithm;
 }
 
 /// A TSP payload (§9.2). Every layout carries a padding field; its content is
@@ -318,21 +316,12 @@ final class TspPackOptions {
   /// Creates pack options.
   const TspPackOptions({
     this.payloadSender = PayloadSenderMode.schemeDefault,
-    this.ephemeral,
     this.nullReceiver = false,
     this.limits = TspLimits.defaults,
   });
 
   /// Which ESSR sender field to carry.
   final PayloadSenderMode payloadSender;
-
-  /// Fixed encryption randomness: HPKE `ikmE` (32 bytes for X25519; the
-  /// 64-byte encapsulation randomness for MLKEM768-X25519) or the sealed box
-  /// ephemeral secret `skEm`.
-  ///
-  /// **Test vectors only.** Reusing it for two messages breaks both
-  /// confidentiality and integrity.
-  final Uint8List? ephemeral;
 
   /// Writes the NULL VID as the envelope receiver (e.g. the inner message of
   /// a nested relationship-forming invite, §7.2.6).

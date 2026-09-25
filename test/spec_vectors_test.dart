@@ -49,16 +49,22 @@ void main() {
   }) async {
     final v = vec(name);
     final eph = v['ikmE'] ?? v['skEm'];
-    final packed = await Tsp.pack(
-      sender: sv.privateVid(v['sender']! as String),
-      receiver: sv.publicVid(v['receiver']! as String),
-      payload: payload,
-      scheme: scheme,
-      options: TspPackOptions(
-        payloadSender: sender,
-        ephemeral: eph == null ? null : b64(eph as String),
-      ),
-    );
+    final packed = eph == null
+        ? await Tsp.pack(
+            sender: sv.privateVid(v['sender']! as String),
+            receiver: sv.publicVid(v['receiver']! as String),
+            payload: payload,
+            scheme: scheme,
+            options: TspPackOptions(payloadSender: sender),
+          )
+        : await Tsp.packForTestVector(
+            sender: sv.privateVid(v['sender']! as String),
+            receiver: sv.publicVid(v['receiver']! as String),
+            payload: payload,
+            scheme: scheme,
+            options: TspPackOptions(payloadSender: sender),
+            ephemeral: b64(eph as String),
+          );
     if (expectDigest != null) expect(packed.digest, expectDigest);
     return packed.bytes;
   }

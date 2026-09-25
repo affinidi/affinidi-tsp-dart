@@ -15,11 +15,23 @@ import '../util/bytes.dart';
 final class DidPeer4Resolver implements DidResolver {
   /// Creates a resolver delegating other methods to [fallback], by default
   /// `ssi`'s universal resolver.
-  DidPeer4Resolver({DidResolver? fallback})
-    : fallback = fallback ?? UniversalDIDResolver.defaultResolver;
+  DidPeer4Resolver({DidResolver? fallback, this.maxCachedLongForms = 256})
+    : fallback = fallback ?? UniversalDIDResolver.defaultResolver {
+    if (maxCachedLongForms < 0) {
+      throw ArgumentError.value(
+        maxCachedLongForms,
+        'maxCachedLongForms',
+        'must not be negative',
+      );
+    }
+  }
 
   /// Resolves DIDs that are not `did:peer:4`.
   final DidResolver fallback;
+
+  /// Maximum number of successfully parsed long forms retained for short-form
+  /// resolution. Set to zero to disable the cache.
+  final int maxCachedLongForms;
 
   final Map<String, String> _longForms = {};
 
@@ -37,6 +49,8 @@ final class DidPeer4Resolver implements DidResolver {
           code: SsiExceptionType.invalidDidDocument.code,
         );
       }
+      _longForms.remove(did);
+      _longForms[did] = long;
       return _document(long, id: did, alsoKnownAs: long);
     }
     if (parts.length != 2) {
@@ -47,8 +61,18 @@ final class DidPeer4Resolver implements DidResolver {
     }
     final short = '$_prefix${parts[0]}';
     _checkHash(parts[0], parts[1]);
-    _longForms[short] = did;
-    return _document(did, id: did, alsoKnownAs: short);
+    final document = _document(did, id: did, alsoKnownAs: short);
+    _cache(short, did);
+    return document;
+  }
+
+  void _cache(String short, String long) {
+    if (maxCachedLongForms == 0) return;
+    _longForms.remove(short);
+    _longForms[short] = long;
+    if (_longForms.length > maxCachedLongForms) {
+      _longForms.remove(_longForms.keys.first);
+    }
   }
 
   /// Returns the short form of a long-form `did:peer:4`, after checking it.

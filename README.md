@@ -90,7 +90,11 @@ final packed = await Tsp.pack(
 
 `SsiVidResolver` accepts any `ssi` `DidResolver` and a list of
 `TspKeyMapper`s, so custom DID methods and key types plug in without changes
-here.
+here. Its default pre-authentication policy permits only `did:key` and
+`did:peer:4`, which resolve without network access. To receive messages from a
+network-capable DID method such as `did:web`, provide a `VidResolutionPolicy`
+and a resolver that validates resolved IP addresses and every redirect against
+your egress policy.
 
 ### Relationships with TspEndpoint
 
@@ -157,9 +161,10 @@ Payload types: `ScsPayload` (application bytes, carried as exactly one Bytes pri
 `RfdPayload`, `HopPayload` (nested when `hops` is empty, routed otherwise; the
 inner message is carried unopened).
 
-`TspPackOptions.ephemeral` fixes the HPKE `ikmE` or the sealed-box ephemeral
-secret so that the specification's test vectors reproduce byte for byte. Never
-use it in production.
+`Tsp.packForTestVector` fixes the HPKE `ikmE` or sealed-box ephemeral secret
+so the specification's test vectors reproduce byte for byte. It is marked
+test-only because reusing its randomness in production breaks confidentiality
+and integrity.
 
 ### Post-quantum
 
@@ -224,6 +229,12 @@ and the ToIP reference:
 - **Hop limits.** Up to 64 VIDs in a hop list or reply path by default
   (`TspLimits.maxHops`); the spec sets no limit. 64 matches affinidi-tsp,
   tsp-js and affinidi-tsp-go.
+- **Message limit.** Inbound messages default to 4 MiB
+  (`TspLimits.maxMessageLength`); applications with larger trusted payloads
+  must opt in with an explicit limit.
+- **Referral signatures.** A decoded referral retains the algorithm declared
+  by its CESR signature primitive. Supplying a precomputed referral signature
+  requires its algorithm explicitly.
 - **Application body.** `XSCS`/`XCTL` data is exactly one Bytes primitive
   inside `-A##`; any other body is refused
   ([tswg-tsp-specification#77](https://github.com/trustoverip/tswg-tsp-specification/issues/77)).
@@ -238,8 +249,12 @@ and the ToIP reference:
 - X25519 rejects all-zero shared secrets (small-order points) everywhere,
   including behind custody callbacks.
 - Ed25519 verification rejects non-canonical `S` values.
-- Only signature index 0 is accepted in `B#`, since a VID maps to one signing
-  key here and the index is not covered by the signature.
+- A signature attachment must contain exactly one signature at index 0, since
+  a VID maps to one signing key here and the index is not covered by the
+  signature.
+- TSP does not provide replay protection, ordering or freshness for application
+  payloads. Applications must supply the nonce, timestamp, sequence or stable
+  message identifier appropriate to their protocol semantics.
 
 ## Integrating into the Affinidi TDK
 

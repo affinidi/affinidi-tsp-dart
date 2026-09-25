@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
 import '../cesr/cesr.dart';
 import '../cesr/tsp_codes.dart';
 import '../crypto/digest.dart';
@@ -76,6 +78,42 @@ abstract final class Tsp {
     required TspPayload payload,
     TspScheme scheme = TspScheme.hpkeBase,
     TspPackOptions options = const TspPackOptions(),
+  }) => _pack(
+    sender: sender,
+    receiver: receiver,
+    payload: payload,
+    scheme: scheme,
+    options: options,
+  );
+
+  /// Packs a test vector using fixed encryption randomness.
+  ///
+  /// Reusing [ephemeral] for production messages breaks confidentiality and
+  /// integrity. This API exists only to reproduce published test vectors.
+  @visibleForTesting
+  static Future<PackedTspMessage> packForTestVector({
+    required PrivateVid sender,
+    required PublicVid receiver,
+    required TspPayload payload,
+    required Uint8List ephemeral,
+    TspScheme scheme = TspScheme.hpkeBase,
+    TspPackOptions options = const TspPackOptions(),
+  }) => _pack(
+    sender: sender,
+    receiver: receiver,
+    payload: payload,
+    scheme: scheme,
+    options: options,
+    ephemeral: ephemeral,
+  );
+
+  static Future<PackedTspMessage> _pack({
+    required PrivateVid sender,
+    required PublicVid receiver,
+    required TspPayload payload,
+    required TspScheme scheme,
+    required TspPackOptions options,
+    Uint8List? ephemeral,
   }) async {
     final limits = options.limits;
     checkPayloadAllowed(payload, scheme);
@@ -128,7 +166,7 @@ abstract final class Tsp {
           info: TspCodes.hpkeInfo,
           aad: fields,
           plaintext: encoded.frame,
-          ephemeral: options.ephemeral,
+          ephemeral: ephemeral,
         );
         body =
             (CesrWriter()..variable(TspCodes.hpkeBaseCiphertext, [
@@ -148,7 +186,7 @@ abstract final class Tsp {
             'the sealed box is defined only for X25519 encryption keys',
           );
         }
-        if (options.ephemeral != null && options.ephemeral!.length != 32) {
+        if (ephemeral != null && ephemeral.length != 32) {
           throw const TspInvalidInputException(
             'sealed box skEm must be 32 bytes',
           );
@@ -156,7 +194,7 @@ abstract final class Tsp {
         final ct = SealedBox.seal(
           encoded.frame,
           key.bytes,
-          ephemeralSecretKey: options.ephemeral,
+          ephemeralSecretKey: ephemeral,
         );
         body = (CesrWriter()..variable(TspCodes.sealedBoxCiphertext, ct))
             .takeBytes();
@@ -282,7 +320,7 @@ abstract final class Tsp {
     }
 
     final decoded = decodePayloadFrame(
-      plaintext: Uint8List.fromList(plaintext),
+      plaintext: plaintext,
       envelopeFields: fields,
       envelopeSender: p.sender,
       limits: limits,
