@@ -18,6 +18,16 @@ final class _CountingResolver implements PreAuthenticationVidResolver {
   }
 }
 
+final class _UnmarkedCountingResolver implements VidResolver {
+  int calls = 0;
+
+  @override
+  Future<PublicVid> resolve(String vid) async {
+    calls++;
+    throw StateError('resolution must not be attempted');
+  }
+}
+
 void main() {
   setUpAll(() => primeIdentities([1, 2]));
 
@@ -168,6 +178,21 @@ void main() {
         expect(resolver.calls, 0);
       },
     );
+
+    test('an unmarked resolver is denied before resolution', () async {
+      final resolver = _UnmarkedCountingResolver();
+      final endpoint = TspEndpoint(identities: [b.private], resolver: resolver);
+      final packed = await Tsp.pack(
+        sender: a.private,
+        receiver: b.public,
+        payload: ScsPayload([1]),
+      );
+      await expectLater(
+        endpoint.receive(packed.bytes),
+        throwsA(isA<TspSenderException>()),
+      );
+      expect(resolver.calls, 0);
+    });
 
     test('an accept naming an unknown invite is refused', () async {
       await ea.invite(from: a.private.id, to: b.private.id);
