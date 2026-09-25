@@ -18,7 +18,7 @@ abstract interface class PreAuthenticationVidResolver implements VidResolver {
 }
 
 /// A [VidResolver] over a fixed set of VIDs, e.g. peers learned out of band.
-final class StaticVidResolver implements VidResolver {
+final class StaticVidResolver implements PreAuthenticationVidResolver {
   /// Creates a resolver over [vids].
   StaticVidResolver(Iterable<PublicVid> vids)
     : _vids = {for (final v in vids) v.id: v};
@@ -27,6 +27,9 @@ final class StaticVidResolver implements VidResolver {
 
   /// Adds or replaces [vid].
   void add(PublicVid vid) => _vids[vid.id] = vid;
+
+  @override
+  bool allowsPreAuthenticationResolution(String vid) => _vids.containsKey(vid);
 
   @override
   Future<PublicVid> resolve(String vid) async {
@@ -121,6 +124,12 @@ final class TspEndpoint {
 
   /// Bounds applied to received messages.
   final TspLimits limits;
+
+  bool _allowsPreAuthenticationResolution(String vid) => switch (resolver) {
+    final PreAuthenticationVidResolver preAuthResolver =>
+      preAuthResolver.allowsPreAuthenticationResolution(vid),
+    _ => false,
+  };
 
   /// The local identities this endpoint holds.
   Iterable<PrivateVid> get identities => _identities.values;
@@ -239,10 +248,9 @@ final class TspEndpoint {
         'the message is not addressed to a local identity',
       );
     }
-    if (resolver case final PreAuthenticationVidResolver preAuthResolver
-        when !preAuthResolver.allowsPreAuthenticationResolution(info.sender)) {
+    if (!_allowsPreAuthenticationResolution(info.sender)) {
       throw TspSenderException(
-        'sender VID ${info.sender} is not permitted before authentication',
+        'sender VID ${info.sender} is not permitted for pre-authentication resolution',
       );
     }
     final PublicVid remote;

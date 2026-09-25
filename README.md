@@ -94,7 +94,9 @@ here. Its default pre-authentication policy permits only `did:key` and
 `did:peer:4`, which resolve without network access. To receive messages from a
 network-capable DID method such as `did:web`, provide a `VidResolutionPolicy`
 and a resolver that validates resolved IP addresses and every redirect against
-your egress policy.
+your egress policy. Any custom resolver used with `TspEndpoint.receive` must
+implement `PreAuthenticationVidResolver`; unmarked resolvers are denied before
+they can resolve an unauthenticated sender VID.
 
 ### Relationships with TspEndpoint
 
@@ -235,6 +237,10 @@ and the ToIP reference:
 - **Referral signatures.** A decoded referral retains the algorithm declared
   by its CESR signature primitive. Supplying a precomputed referral signature
   requires its algorithm explicitly.
+- **Signature attachments.** Rev 3 permits multiple signatures, but this
+  implementation deliberately accepts exactly one index-0 signature because a
+  VID maps to one signing key here. This prevents unsigned attachment
+  malleability; multi-key VID support requires an explicit verification model.
 - **Application body.** `XSCS`/`XCTL` data is exactly one Bytes primitive
   inside `-A##`; any other body is refused
   ([tswg-tsp-specification#77](https://github.com/trustoverip/tswg-tsp-specification/issues/77)).
@@ -249,9 +255,8 @@ and the ToIP reference:
 - X25519 rejects all-zero shared secrets (small-order points) everywhere,
   including behind custody callbacks.
 - Ed25519 verification rejects non-canonical `S` values.
-- A signature attachment must contain exactly one signature at index 0, since
-  a VID maps to one signing key here and the index is not covered by the
-  signature.
+- Signature attachments are restricted to one index-0 signature; see the
+  intentional compatibility restriction under Specification notes.
 - TSP does not provide replay protection, ordering or freshness for application
   payloads. Applications must supply the nonce, timestamp, sequence or stable
   message identifier appropriate to their protocol semantics.
