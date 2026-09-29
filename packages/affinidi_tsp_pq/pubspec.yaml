@@ -8,6 +8,8 @@ repository: https://github.com/affinidi/affinidi-tsp-dart
 environment:
   sdk: ^3.10.0
 
+resolution: workspace
+
 platforms:
   web:
   android:
@@ -22,5 +24,6 @@ dependencies:
   ssi: '>=3.9.0 <5.0.0'
 
 dev_dependencies:
+  coverage: ^1.11.1
   dart_flutter_team_lints: ^3.2.1
   test: ^1.24.0

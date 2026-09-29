@@ -6,8 +6,9 @@ When contributing to this repository, please first discuss the change you wish t
 
 ### Prerequisites
 
-- **Dart SDK**: Version 3.8.0 or higher for `affinidi_tsp` (check with `dart --version`).
-- **Dart SDK**: Version 3.10.0 or higher for `affinidi_tsp_pq` (its `pqcrypto` dependency requires it).
+- **Dart SDK**: Version 3.10.0 or higher (the workspace resolves against the
+  highest member constraint; `affinidi_tsp_pq` needs 3.10 for `pqcrypto`).
+- **Melos**: installed as a workspace dev dependency, run it with `dart run melos`.
 
 ### Setting Up Your Development Environment
 
@@ -17,40 +18,33 @@ When contributing to this repository, please first discuss the change you wish t
     git clone git@github.com:affinidi/affinidi-tsp-dart.git
     ```
 
-2. Fetch dependencies for each package you are working on:
+2. Fetch dependencies for the whole workspace in one step:
 
    ```bash
-   dart pub get
-
-   cd pq
    dart pub get
    ```
 
 ### Working Across Two Packages
 
-- `affinidi_tsp` (root) has no dependency on `affinidi_tsp_pq`. Most changes
-  only touch the root package.
-- `affinidi_tsp_pq` depends on `affinidi_tsp` locally, so a root API change is
-  visible in `pq/` immediately without republishing.
-- If your change affects both packages, analyse and test both:
+This repository is a Dart pub workspace with two published packages:
 
-  ```bash
-  dart analyze && dart test
+- `packages/affinidi_tsp` — the core library, no dependency on the PQ package.
+- `packages/affinidi_tsp_pq` — depends on `affinidi_tsp`, resolved from the
+  workspace, so a core API change is visible immediately without republishing.
 
-  cd pq
-  dart analyze && dart test
-  ```
+Run analysis and tests across every package at once:
+
+```bash
+dart run melos analyze
+dart run melos test
+```
 
 ### Code Quality Expectations
 
 1. **Analysis**: Ensure your code passes static analysis.
 
    ```bash
-   # From the repository root
-   dart analyze
-
-   # From pq/
-   cd pq && dart analyze
+   dart run melos analyze
    ```
 
    Fix all errors and warnings before submitting a PR.
@@ -58,7 +52,7 @@ When contributing to this repository, please first discuss the change you wish t
 2. **Formatting**: Use Dart's built-in formatter.
 
    ```bash
-   dart format .
+   dart run melos format
    ```
 
    All code must be formatted using `dart format` with default settings.
@@ -66,11 +60,7 @@ When contributing to this repository, please first discuss the change you wish t
 3. **Testing**: Ensure your code is covered with tests.
 
    ```bash
-   # From the repository root
-   dart test
-
-   # From pq/
-   cd pq && dart test
+   dart run melos test
    ```
 
    - Write unit tests for all public APIs.
@@ -93,7 +83,7 @@ When contributing to this repository, please first discuss the change you wish t
 5. **Linting**: Follow the project's linting rules.
 
    - The project uses `package:dart_flutter_team_lints`.
-   - Check [analysis_options.yaml](analysis_options.yaml) for specific rules.
+   - Check [analysis_options.yaml](packages/affinidi_tsp/analysis_options.yaml) for specific rules.
    - All public members must have API documentation (`public_member_api_docs`
      rule).
 
@@ -107,14 +97,14 @@ When contributing to this repository, please first discuss the change you wish t
 
 7. **Pull Request Quality**:
 
-   - Ensure all CI checks pass (`dart format --set-exit-if-changed`,
-     `dart analyze --fatal-infos`, `dart test`, for both packages).
+   - Ensure all CI checks pass (`melos format --set-exit-if-changed`,
+     `melos analyze`, `melos test`, across both packages).
    - Remove debugging code, commented-out code, and unnecessary print
      statements.
    - Keep commits focused and atomic.
-   - Update `README.md` and `CHANGELOG.md` under `## Unreleased` when
-     behavior, public API, or documented security properties change; update
-     `pq/CHANGELOG.md` too if the change reaches that package.
+   - Update the affected package's `README.md` and `CHANGELOG.md` under
+     `## Unreleased` when behavior, public API, or documented security
+     properties change; update both packages when the change reaches both.
    - Self-review your code before requesting review from others.
 
 8. **Code Clarity**:
