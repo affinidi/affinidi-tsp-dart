@@ -1,3 +1,7 @@
+## 0.1.1
+
+ - **FIX**: add a runnable example.
+
 ## 0.1.0
 
 - MLKEM768-X25519 hybrid KEM (`0x647a`) and ML-DSA-65 key types for

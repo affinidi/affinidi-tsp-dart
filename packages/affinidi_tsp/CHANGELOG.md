@@ -1,3 +1,7 @@
+## 0.1.1
+
+ - **FIX**: shorten description to pana's 180 character limit.
+
 ## Unreleased
 
 - Rename the packages to `affinidi_tsp` and `affinidi_tsp_pq` to avoid a name
