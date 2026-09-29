@@ -1,36 +1,48 @@
-name: affinidi_tsp
-description: >-
-  Trust Spanning Protocol (TSP) Rev 3 for Dart: CESR framing, HPKE-Base,
-  libsodium sealed box, signed-only messages, relationship control and an
-  ssi-integrated layer for DID-based VIDs.
-version: 0.1.0
-repository: https://github.com/affinidi/affinidi-tsp-dart
-issue_tracker: https://github.com/affinidi/affinidi-tsp-dart/issues
-topics:
-  - tsp
-  - cryptography
-  - did
-  - ssi
-  - messaging
+name: affinidi_tsp_workspace
+description: Dart packages for the Trust Spanning Protocol (TSP).
+publish_to: none
 
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.10.0
 
-platforms:
-  web:
-  android:
-  ios:
-  linux:
-  macos:
-  windows:
-
-dependencies:
-  crypto: ^3.0.6
-  cryptography: ^2.7.0
-  meta: ^1.16.0
-  pinenacl: ^0.6.0
-  ssi: '>=3.9.0 <5.0.0'
+workspace:
+  - packages/affinidi_tsp
+  - packages/affinidi_tsp_pq
 
 dev_dependencies:
+  coverage: ^1.11.1
   dart_flutter_team_lints: ^3.2.1
+  melos: ^8.7.0
   test: ^1.24.0
+
+melos:
+  scripts:
+    analyze:
+      description: Run dart analyze on all workspace packages
+      exec: dart analyze .
+      concurrency: 4
+      failFast: true
+      noSelect: true
+
+    test:
+      run: |
+        melos run test-dart &&
+        melos run coverage-report
+
+    test-dart:
+      description: Run tests with coverage in each workspace package
+      exec: dart run coverage:test_with_coverage -- --reporter expanded
+      dirExists: test
+      concurrency: 4
+      failFast: true
+      noSelect: true
+
+    coverage-report:
+      description: Merge per-package lcov output into coverage/lcov.info
+      run: >
+        mkdir -p coverage &&
+
+        find packages -name lcov.info -path '*/coverage/*' -print0
+        | xargs -0 cat > coverage/lcov.info &&
+
+        echo "Coverage report generated at coverage/lcov.info"
