@@ -1,8 +1,8 @@
 name: affinidi_tsp
 description: >-
   Trust Spanning Protocol (TSP) Rev 3 for Dart: CESR framing, HPKE-Base,
-  libsodium sealed box, signed-only messages, relationship control and an
-  ssi-integrated layer for DID-based VIDs.
+  sealed box, signed-only messages, relationship control and ssi-integrated
+  DID-based VIDs.
 version: 0.1.0
 repository: https://github.com/affinidi/affinidi-tsp-dart
 issue_tracker: https://github.com/affinidi/affinidi-tsp-dart/issues
