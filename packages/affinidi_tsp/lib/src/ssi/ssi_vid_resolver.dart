@@ -5,6 +5,7 @@ import '../keys/keys.dart';
 import '../message/model.dart';
 import '../relationship/endpoint.dart';
 import 'did_peer4_resolver.dart';
+import 'did_scid_resolver.dart';
 import 'key_mapping.dart';
 
 /// Resolves DID-based VIDs through `ssi`'s DID resolution and maps their
@@ -16,13 +17,15 @@ import 'key_mapping.dart';
 final class SsiVidResolver implements PreAuthenticationVidResolver {
   /// Creates a resolver.
   ///
-  /// [didResolver] defaults to a [DidPeer4Resolver] in front of `ssi`'s
-  /// `UniversalDIDResolver` (did:key, did:peer:0/2, did:web, did:webvh).
+  /// [didResolver] defaults to a [DidPeer4Resolver] and a [DidScidResolver]
+  /// in front of `ssi`'s `UniversalDIDResolver` (did:key, did:peer:0/2,
+  /// did:web, did:webvh), so did:peer:4 and did:scid:vh:1 resolve too.
   SsiVidResolver({
     DidResolver? didResolver,
     List<TspKeyMapper> keyMappers = const [ClassicalKeyMapper()],
     this.preAuthenticationPolicy = const LocalVidResolutionPolicy(),
-  }) : didResolver = didResolver ?? DidPeer4Resolver(),
+  }) : didResolver =
+           didResolver ?? DidPeer4Resolver(fallback: DidScidResolver()),
        keyMappers = List.unmodifiable(keyMappers);
 
   /// The underlying DID resolver.
