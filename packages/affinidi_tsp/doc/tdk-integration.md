@@ -24,7 +24,7 @@ Read this with the DIDComm layout in mind:
 
 Everything that is protocol and has no I/O:
 
-- Wire format: binary CESR, envelope, all Rev 3 payload types, signature
+- Wire format: binary CESR, envelope, all TSP 1.0 payload types, signature
   attachments, size limits, strict parsing.
 - Cryptography: HPKE-Base (RFC 9180), libsodium sealed box, Ed25519, digests.
 - Key abstractions: `TspSigningKey`, `TspVerificationKey`, `TspEncryptionKey`,

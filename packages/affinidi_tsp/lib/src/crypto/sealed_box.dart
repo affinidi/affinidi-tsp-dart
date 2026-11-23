@@ -9,7 +9,7 @@ import '../util/random.dart';
 import 'digest.dart';
 import 'x25519.dart';
 
-/// libsodium `crypto_box_seal` / `crypto_box_seal_open` (TSP Rev 3 §8.3).
+/// libsodium `crypto_box_seal` / `crypto_box_seal_open` (TSP 1.0 §8.3).
 ///
 /// ```text
 /// nonce  = Blake2b-192(epk ‖ pk)

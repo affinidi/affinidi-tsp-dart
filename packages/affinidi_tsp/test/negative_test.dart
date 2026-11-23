@@ -3,6 +3,10 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:affinidi_tsp/affinidi_tsp.dart';
+import 'package:affinidi_tsp/src/cesr/cesr.dart';
+import 'package:affinidi_tsp/src/cesr/tsp_codes.dart';
+import 'package:affinidi_tsp/src/crypto/hpke.dart';
+import 'package:affinidi_tsp/src/message/frame.dart';
 import 'package:test/test.dart';
 
 import 'support/fixtures.dart';
@@ -66,31 +70,57 @@ void main() {
   });
 
   group('version', () {
-    // `YTSP-AAC`: the version count code follows the 3-byte YTSP marker.
+    // `YTSP-BAA`: the version count code follows the 3-byte YTSP marker.
+    // Its 24 bits are DASH(6) | MAJOR(6) | MINOR(12), so the second byte holds
+    // MAJOR's low four bits and MINOR's high four, and the third MINOR's low
+    // eight.
     int versionOffset(Uint8List m) =>
         indexOfBytes(m, base64Url.decode('YTSP')) + 3;
 
+    Future<Uint8List> withVersion(int major, int minor) => resign(
+      vector('direct-signed-only'),
+      sv.privateVid('alice').signingKey,
+      (s) {
+        final at = versionOffset(s);
+        s[at + 1] = ((major & 0x0f) << 4) | ((minor >> 8) & 0x0f);
+        s[at + 2] = minor & 0xff;
+      },
+    );
+
     test('an unknown major version is rejected as a version error', () async {
-      final m = await resign(
-        vector('direct-signed-only'),
-        sv.privateVid('alice').signingKey,
-        (s) {
-          final at = versionOffset(s);
-          s[at + 1] = (s[at + 1] & 0x0f) | (1 << 4); // -B.. : major 1
-        },
+      await expectLater(
+        openAsBob(await withVersion(2, 0)),
+        throwsA(isA<TspVersionException>()),
       );
-      await expectLater(openAsBob(m), throwsA(isA<TspVersionException>()));
     });
 
-    test('a Rev 2 minor version is rejected as a version error', () async {
-      final m = await resign(
-        vector('direct-signed-only'),
-        sv.privateVid('alice').signingKey,
-        (s) {
-          s[versionOffset(s) + 2] = 1; // -AAB
-        },
+    test('a Rev 3 (YTSP-AAC) message is refused, naming the draft', () async {
+      await expectLater(
+        openAsBob(await withVersion(0, 2)),
+        throwsA(
+          isA<TspVersionException>().having(
+            (e) => e.message,
+            'message',
+            contains('Rev 3 (YTSP-AAC)'),
+          ),
+        ),
       );
-      await expectLater(openAsBob(m), throwsA(isA<TspVersionException>()));
+      expect(
+        () async => Tsp.peek(await withVersion(0, 2)),
+        throwsA(isA<TspVersionException>()),
+      );
+    });
+
+    test('a Rev 2 (YTSP-AAB) message is refused', () async {
+      await expectLater(
+        openAsBob(await withVersion(0, 1)),
+        throwsA(isA<TspVersionException>()),
+      );
+    });
+
+    test('a different minor at major 1 is read, not refused', () async {
+      final m = await openAsBob(await withVersion(1, 5));
+      expect(m.version, const TspVersion(1, 5));
     });
   });
 
@@ -241,20 +271,80 @@ void main() {
     },
   );
 
-  test('a sealed-box payload without the ESSR sender is refused', () async {
+  test('a confidential payload without the ESSR sender cannot be packed', () {
     final a = identity('did:example:a', 1);
     final b = identity('did:example:b', 2);
-    expect(
-      () => Tsp.pack(
-        sender: a.private,
-        receiver: b.public,
-        payload: ScsPayload([1]),
-        scheme: TspScheme.sealedBox,
-        options: const TspPackOptions(payloadSender: PayloadSenderMode.nullVid),
-      ),
-      throwsA(isA<TspInvalidInputException>()),
-    );
+    for (final scheme in [TspScheme.hpkeBase, TspScheme.sealedBox]) {
+      expect(
+        () => Tsp.pack(
+          sender: a.private,
+          receiver: b.public,
+          payload: ScsPayload([1]),
+          scheme: scheme,
+          options: const TspPackOptions(
+            payloadSender: PayloadSenderMode.nullVid,
+          ),
+        ),
+        throwsA(isA<TspInvalidInputException>()),
+        reason: '$scheme',
+      );
+    }
   });
+
+  test(
+    'an HPKE-Base payload carrying the NULL ESSR sender is refused on open',
+    () async {
+      // What a Rev 3 peer was allowed to send, framed as 1.0: built by hand,
+      // since `Tsp.pack` refuses to write it.
+      final a = identity('did:example:a', 1);
+      final b = identity('did:example:b', 2);
+      final fields = encodeEnvelopeFields(
+        a.private.id,
+        b.private.id,
+        TspLimits.defaults,
+      );
+      final frame = await encodePayloadFrame(
+        payload: ScsPayload([1, 2, 3]),
+        envelopeFields: fields,
+        payloadSender: null,
+        digestAlgorithm: TspDigestAlgorithm.sha256,
+        limits: TspLimits.defaults,
+      );
+      final sealed = await Hpke.sealBase(
+        recipient: b.public.encryptionKey!,
+        info: TspCodes.hpkeInfo,
+        aad: fields,
+        plaintext: frame.frame,
+      );
+      final body =
+          (CesrWriter()..variable(TspCodes.hpkeBaseCiphertext, [
+                ...sealed.enc,
+                ...sealed.ciphertext,
+              ]))
+              .takeBytes();
+      final signable =
+          (CesrWriter()
+                ..count(TspCodes.envelope, (fields.length + body.length) ~/ 3)
+                ..raw(fields)
+                ..raw(body))
+              .takeBytes();
+      final signature = await a.private.signingKey.sign(signable);
+      final message =
+          (CesrWriter()
+                ..raw(signable)
+                ..raw(
+                  encodeSignatureAttachment(
+                    a.private.signingKey.algorithm,
+                    signature,
+                  ),
+                ))
+              .takeBytes();
+      await expectLater(
+        Tsp.open(message, receiver: b.private, sender: a.public),
+        throwsA(isA<TspSenderException>()),
+      );
+    },
+  );
 
   test('a nested message may not be signed-only', () async {
     final a = identity('did:example:a', 1);

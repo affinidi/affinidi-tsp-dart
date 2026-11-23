@@ -1,7 +1,7 @@
-/// Trust Spanning Protocol (TSP) Rev 3 for Dart.
+/// Trust Spanning Protocol (TSP) 1.0 for Dart.
 ///
-/// A pure-Dart implementation of the ToIP Trust Spanning Protocol, revision 3
-/// (`YTSP-AAC`): binary CESR framing, HPKE-Base and libsodium sealed-box
+/// A pure-Dart implementation of the ToIP Trust Spanning Protocol, version 1.0
+/// (`YTSP-BAA`): binary CESR framing, HPKE-Base and libsodium sealed-box
 /// confidentiality, signed-only messages, nested and routed messages,
 /// relationship forming control messages with self-addressing digests, and a
 /// relationship state machine.

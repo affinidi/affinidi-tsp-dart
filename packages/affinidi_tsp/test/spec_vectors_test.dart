@@ -98,7 +98,8 @@ void main() {
       final m = await openVector('direct-hpke-base');
       expect(m.scheme, TspScheme.hpkeBase);
       expect(m.kem, TspKem.x25519);
-      expect(m.payloadSender, isNull);
+      // TSP 1.0 carries the sender VID in every confidential payload.
+      expect(m.payloadSender, sv.id('alice'));
       expect(utf8.decode((m.payload as ScsPayload).data), 'hello world');
       expect(
         await reencodeFrame(m, m.scheme),
@@ -118,6 +119,9 @@ void main() {
       final m = await openVector('direct-signed-only');
       expect(m.scheme, TspScheme.signedOnly);
       expect(m.confidential, isFalse);
+      // A non-confidential payload may still carry the NULL VID (§3.7), and
+      // the 1.0 vector does.
+      expect(m.payloadSender, isNull);
       expect(
         utf8.decode((m.payload as ScsPayload).data),
         'public announcement!',
@@ -127,8 +131,45 @@ void main() {
           'direct-signed-only',
           ScsPayload(utf8.encode('public announcement!')),
           TspScheme.signedOnly,
+          sender: PayloadSenderMode.nullVid,
         ),
         message('direct-signed-only'),
+      );
+    });
+
+    test('control-rfi-referral', () async {
+      final v = vec('control-rfi-referral');
+      final m = await openVector('control-rfi-referral');
+      final p = m.payload as RfiPayload;
+      final referral = p.referral!;
+      // The referral introduces the VID in its long (self-certifying) form.
+      expect(referral.vid, sv.identifiers[v['newVid']! as String]!['longForm']);
+      expect(referral.signature, b64(v['signatureNew']! as String));
+      expect(await reencodeFrame(m, m.scheme), b64(v['payload']! as String));
+      // Signature_new verifies under the introduced VID's key and fails under
+      // any other.
+      final referred = sv.publicVid(v['newVid']! as String);
+      expect(await Tsp.verifyReferral(m, referred.verificationKey), isTrue);
+      expect(
+        await Tsp.verifyReferral(m, sv.publicVid('bob').verificationKey),
+        isFalse,
+      );
+      expect(
+        await repack(
+          'control-rfi-referral',
+          RfiPayload(
+            nonce: p.nonce,
+            replyPath: p.replyPath,
+            referral: Referral(
+              vid: referral.vid,
+              signature: referral.signature!,
+              algorithm: referral.algorithm,
+            ),
+          ),
+          TspScheme.hpkeBase,
+          expectDigest: p.digest,
+        ),
+        message('control-rfi-referral'),
       );
     });
 

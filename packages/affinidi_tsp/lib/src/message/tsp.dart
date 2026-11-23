@@ -43,7 +43,7 @@ final class _Parsed {
   final DecodedSignature signature;
 }
 
-/// Low-level TSP Rev 3 message operations over raw keys.
+/// Low-level TSP 1.0 message operations over raw keys.
 ///
 /// ```dart
 /// final packed = await Tsp.pack(
@@ -121,16 +121,17 @@ abstract final class Tsp {
     final String? payloadSender;
     switch (options.payloadSender) {
       case PayloadSenderMode.schemeDefault:
-        payloadSender = scheme == TspScheme.sealedBox ? sender.id : null;
+      case PayloadSenderMode.present:
+        payloadSender = sender.id;
       case PayloadSenderMode.nullVid:
-        if (scheme == TspScheme.sealedBox) {
+        if (scheme != TspScheme.signedOnly) {
           throw const TspInvalidInputException(
-            'the sealed box requires the ESSR sender VID in the payload (§8.3)',
+            'TSP 1.0 requires the ESSR sender VID in every confidential '
+            'payload (§3.2, §3.7 step 7); only a signed-only message may '
+            'carry the NULL VID',
           );
         }
         payloadSender = null;
-      case PayloadSenderMode.present:
-        payloadSender = sender.id;
     }
 
     final digestAlgorithm = scheme == TspScheme.sealedBox
@@ -325,9 +326,10 @@ abstract final class Tsp {
       envelopeSender: p.sender,
       limits: limits,
     );
-    if (p.scheme == TspScheme.sealedBox && decoded.payloadSender == null) {
+    if (p.scheme != TspScheme.signedOnly && decoded.payloadSender == null) {
       throw const TspSenderException(
-        'a sealed-box payload must carry the ESSR sender VID (§8.3)',
+        'the ESSR sender VID is the NULL VID; TSP 1.0 requires the sender VID '
+        'in every confidential payload (§3.2, §3.7 step 7)',
       );
     }
     if (decoded.payload is HopPayload && p.scheme == TspScheme.signedOnly) {
@@ -391,9 +393,12 @@ abstract final class Tsp {
     }
     content.pos += 3;
     final version = TspVersion((vw >> 12) & 0x3f, vw & 0xfff);
-    if (version.major != TspVersion.current.major ||
-        version.minor < TspVersion.current.minor) {
-      throw TspVersionException('unsupported TSP version $version');
+    // Only MAJOR gates processability (§9.1); no message is refused on MINOR.
+    if (version.major != TspVersion.current.major) {
+      throw TspVersionException(
+        'unsupported TSP version: the message is ${version.describe()}; '
+        'this implementation speaks ${TspVersion.current.describe()}',
+      );
     }
 
     final senderBytes = content.readVariable(

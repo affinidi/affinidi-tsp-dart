@@ -1,7 +1,7 @@
 # Affinidi TSP for Dart
 
 A pure-Dart implementation of the [Trust Spanning Protocol](https://github.com/trustoverip/tswg-tsp-specification)
-(TSP), **revision 3** (`YTSP-AAC`), shaped to sit in the Affinidi TDK the way
+(TSP), **version 1.0** (`YTSP-BAA`), the released specification, shaped to sit in the Affinidi TDK the way
 the [`didcomm`](https://pub.dev/packages/didcomm) package does: a low-level
 protocol API over raw keys, plus an [`ssi`](https://pub.dev/packages/ssi)
 integration so a `DidManager` can pack and open messages and peers' VIDs are
@@ -211,12 +211,17 @@ dart run melos test
 
 ## Specification notes
 
-Choices made where Rev 3 leaves room, consistent with `affinidi-tsp` (Rust)
+Choices made where TSP 1.0 leaves room, consistent with `affinidi-tsp` (Rust)
 and the ToIP reference:
 
-- **Version.** Packs `YTSP-AAC` (0.2, MAJOR.MINOR). Opens any 0.x with MINOR ≥
-  2, so the reference's `YTSP-ABA` is accepted; MAJOR ≠ 0 or MINOR < 2 is a
-  version error.
+- **Version.** Packs `YTSP-BAA` (1.0, MAJOR.MINOR) and opens any MINOR at
+  MAJOR 1. Only MAJOR gates processability (§9.1), so every pre-1.0 draft is a
+  version error, including Rev 3 (`YTSP-AAC`) and Rev 2 (`YTSP-AAB`); the
+  error names the version the message declared.
+- **ESSR sender.** Every confidential payload (HPKE-Base and the sealed box)
+  carries the sender's VID, and one carrying the NULL VID is refused on open
+  (§3.2, §3.7 step 7). Rev 3 let HPKE-Base write the NULL VID. Only a
+  signed-only payload may still carry it (`PayloadSenderMode.nullVid`).
 - **Digest algorithm.** Packs SHA2-256 under HPKE-Base and signed-only,
   Blake2b-256 under the sealed box. On open the hash is taken from each
   digest's own CESR code, as §7.2.1 states.
@@ -237,7 +242,7 @@ and the ToIP reference:
 - **Referral signatures.** A decoded referral retains the algorithm declared
   by its CESR signature primitive. Supplying a precomputed referral signature
   requires its algorithm explicitly.
-- **Signature attachments.** Rev 3 permits multiple signatures, but this
+- **Signature attachments.** TSP 1.0 permits multiple signatures, but this
   implementation deliberately accepts exactly one index-0 signature because a
   VID maps to one signing key here. This prevents unsigned attachment
   malleability; multi-key VID support requires an explicit verification model.

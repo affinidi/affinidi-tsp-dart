@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import '../errors.dart';
 
-/// Binary-domain (qb2) CESR primitives as used by TSP Rev 3.
+/// Binary-domain (qb2) CESR primitives as used by TSP 1.0.
 ///
 /// TSP only ever puts CESR on the wire in its binary form. Every primitive and
 /// group this library emits is quadlet-aligned: its length is a multiple of

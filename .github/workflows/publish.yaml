@@ -8,7 +8,7 @@ on:
 
 jobs:
   dart-pipeline:
-    uses: affinidi/pipeline-dart/.github/workflows/publish.yaml@main
+    uses: affinidi/pipeline-dart/.github/workflows/publish.yaml@17cb6c8d3931d096fbe72c364adc674697a20f4d # main 2026-09-28
     secrets: inherit
     with:
       publish: true

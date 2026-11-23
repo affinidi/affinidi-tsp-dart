@@ -11,7 +11,7 @@ Post-quantum key types for [`affinidi_tsp`](../):
   private-use multicodecs the ToIP reference writes into `did:peer:4`
   documents (`0x300001` ML-DSA-65, `0x300000` MLKEM768-X25519).
 
-TSP Rev 3 post-quantum support is HPKE-Base with the KEM selected by the
+TSP 1.0 post-quantum support is HPKE-Base with the KEM selected by the
 receiver's key type and the signature scheme by the sender's, so these keys go
 straight into `PrivateVid`/`PublicVid` and the usual `Tsp.pack`/`Tsp.open`.
 

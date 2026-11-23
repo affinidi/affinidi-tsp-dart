@@ -1,6 +1,6 @@
 /// Post-quantum key types for `tsp`.
 ///
-/// TSP Rev 3 post-quantum support is not a separate mode: it is HPKE-Base
+/// TSP 1.0 post-quantum support is not a separate mode: it is HPKE-Base
 /// with the MLKEM768-X25519 hybrid KEM (`0x647a`) selected by the receiver's
 /// encryption key type, and ML-DSA-65 signatures (`1AAQ`) selected by the
 /// sender's signing key type. This package supplies those key types; the
