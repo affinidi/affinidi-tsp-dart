@@ -1,6 +1,6 @@
 # Affinidi TSP for Dart
 
-Trust Spanning Protocol (TSP) Rev 3 for Dart, published as a Dart pub
+Trust Spanning Protocol (TSP) 1.0 for Dart, published as a Dart pub
 workspace of two packages.
 
 | Package | Description |

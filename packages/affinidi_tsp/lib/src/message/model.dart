@@ -12,8 +12,23 @@ final class TspVersion {
   /// Creates a version.
   const TspVersion(this.major, this.minor);
 
-  /// The version this library packs: `YTSP-AAC`, i.e. 0.2 (Rev 3).
-  static const TspVersion current = TspVersion(0, 2);
+  /// The version this library packs and reads: `YTSP-BAA`, i.e. 1.0, the
+  /// released specification.
+  ///
+  /// Only MAJOR gates processability (§9.1): a message at another MAJOR is
+  /// refused, which includes the drafts before 1.0 — Rev 2 (`YTSP-AAB`, 0.1)
+  /// and Rev 3 (`YTSP-AAC`, 0.2). A different MINOR at MAJOR 1 is read.
+  static const TspVersion current = TspVersion(1, 0);
+
+  /// A human-readable name for this version, e.g. `Rev 3 (YTSP-AAC)`, for
+  /// error text only — never for admission.
+  String describe() => switch ((major, minor)) {
+    (0, 1) => 'Rev 2 (YTSP-AAB)',
+    (0, 2) => 'Rev 3 (YTSP-AAC)',
+    (0, 64) => 'Rev 3 pre-merge draft (YTSP-ABA)',
+    (1, 0) => 'TSP 1.0 (YTSP-BAA)',
+    _ => '$major.$minor (unrecognised)',
+  };
 
   /// The MAJOR revision (the first character after `YTSP-`).
   final int major;
@@ -299,12 +314,17 @@ final class HopPayload extends TspPayload {
 }
 
 /// Which ESSR sender field (§3.7 step 7) a packed payload carries.
+///
+/// TSP 1.0 requires the sender's VID in every confidential payload, under
+/// HPKE-Base as under the sealed box (§3.2, §3.7 step 7); Rev 3 let HPKE-Base
+/// write the NULL VID. Only a signed-only (non-confidential) payload may still
+/// carry the NULL VID.
 enum PayloadSenderMode {
-  /// The scheme's default: the NULL VID under HPKE-Base and signed-only, the
-  /// sender's VID under the sealed box (where it is mandatory).
+  /// The sender's VID, under every scheme.
   schemeDefault,
 
-  /// The NULL VID `4BAA`. Refused for the sealed box.
+  /// The NULL VID `4BAA`. Signed-only messages only; refused for HPKE-Base
+  /// and the sealed box, where 1.0 requires the sender's VID.
   nullVid,
 
   /// The envelope sender's VID.

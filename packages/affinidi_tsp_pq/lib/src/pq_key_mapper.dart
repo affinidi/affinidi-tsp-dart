@@ -9,7 +9,7 @@ import 'keys.dart';
 ///
 /// No multicodec is registered yet for either key type. The codes used are
 /// the private-use values the ToIP reference implementation writes into
-/// `did:peer:4` documents, as seen in the Rev 3 Appendix A identifiers:
+/// `did:peer:4` documents, as seen in the Appendix A identifiers:
 /// `0x300001` for an ML-DSA-65 public key and `0x300000` for an
 /// MLKEM768-X25519 public key. They are provisional.
 final class PostQuantumKeyMapper implements TspKeyMapper {

@@ -82,37 +82,42 @@ void main() {
   });
 
   test('payload sender modes', () async {
-    for (final scheme in [TspScheme.hpkeBase, TspScheme.signedOnly]) {
-      expect(
-        (await roundTrip(ScsPayload([1]), scheme: scheme)).payloadSender,
-        isNull,
-      );
-      expect(
-        (await roundTrip(
-          ScsPayload([1]),
-          scheme: scheme,
-          options: const TspPackOptions(
-            payloadSender: PayloadSenderMode.present,
-          ),
-        )).payloadSender,
-        a.private.id,
-      );
+    // TSP 1.0: every scheme carries the sender VID by default.
+    for (final scheme in TspScheme.values) {
+      for (final mode in [
+        PayloadSenderMode.schemeDefault,
+        PayloadSenderMode.present,
+      ]) {
+        expect(
+          (await roundTrip(
+            ScsPayload([1]),
+            scheme: scheme,
+            options: TspPackOptions(payloadSender: mode),
+          )).payloadSender,
+          a.private.id,
+          reason: '$scheme $mode',
+        );
+      }
     }
+    // Only a signed-only payload may carry the NULL VID.
     expect(
       (await roundTrip(
         ScsPayload([1]),
-        scheme: TspScheme.sealedBox,
+        scheme: TspScheme.signedOnly,
+        options: const TspPackOptions(payloadSender: PayloadSenderMode.nullVid),
       )).payloadSender,
-      a.private.id,
+      isNull,
     );
   });
 
   test('the invite digest binds the payload sender field', () async {
     final nonce = Uint8List(16);
+    // Signed-only, the one scheme where the NULL VID can still be written.
     Future<TspDigest> invite(PayloadSenderMode mode) async => (await Tsp.pack(
       sender: a.private,
       receiver: b.public,
       payload: RfiPayload(nonce: nonce),
+      scheme: TspScheme.signedOnly,
       options: TspPackOptions(payloadSender: mode),
     )).digest!;
     expect(

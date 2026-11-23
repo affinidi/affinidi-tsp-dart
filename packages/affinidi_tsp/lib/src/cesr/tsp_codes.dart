@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'cesr.dart';
 
-/// CESR code points TSP Rev 3 uses (master table for genus `-_AAACAA`).
+/// CESR code points TSP 1.0 uses (master table for genus `-_AAACAA`).
 abstract final class TspCodes {
   /// `-E`: the envelope group; its count covers all signable content.
   static final int envelope = Cesr.codeInt('E');

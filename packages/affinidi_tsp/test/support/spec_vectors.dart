@@ -8,7 +8,7 @@ import 'package:affinidi_tsp/affinidi_tsp.dart';
 Uint8List b64(String s) =>
     base64Url.decode(s.padRight(s.length + (4 - s.length % 4) % 4, '='));
 
-/// The Rev 3 Appendix A fixture.
+/// The TSP 1.0 Appendix A fixture.
 final class SpecVectors {
   SpecVectors._(this.identifiers, this.vectors);
 
