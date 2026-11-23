@@ -1,3 +1,9 @@
+## 0.2.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **FEAT**: TSP 1.0 (YTSP-BAA); refuse Rev 3 and earlier drafts, require the ESSR sender (#4).
+
 ## 0.1.1
 
  - **FIX**: shorten description to pana's 180 character limit.
