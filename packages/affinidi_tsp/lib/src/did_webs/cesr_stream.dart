@@ -237,12 +237,38 @@ class ParsedMessage {
 const int _maxAttachmentCount = 4096;
 const int _minPrimitiveSize = 4;
 
+/// A view of `text[start, end)`. The attachment parser walks a stream that
+/// may be megabytes long; copying the rest of it at every message, group and
+/// item would make parsing quadratic in the stream's length.
+class _Span {
+  _Span(this.text, this.start, this.end);
+  final String text;
+  final int start;
+  final int end;
+
+  int get length => end - start;
+  String operator [](int i) => text[start + i];
+  bool startsWith(String p, int i) =>
+      start + i + p.length <= end && text.startsWith(p, start + i);
+  _Span from(int i) => _Span(text, start + i, end);
+  _Span sub(int a, int b) => _Span(text, start + a, start + b);
+
+  /// The first [_window] characters, or all when there are fewer: room for
+  /// any one counter (8), indexed signature (160) or primitive (156), and the
+  /// whole remainder wherever a reader would report it as truncated, so
+  /// readers answer, and word their refusals, as over the whole remainder.
+  String get head =>
+      text.substring(start, end < start + _window ? end : start + _window);
+}
+
+const int _window = 512;
+
 (List<T>, int) _take<T>(
-  String text,
+  _Span text,
   String table,
   String kind,
   int count,
-  (T, int) Function(String) item,
+  (T, int) Function(_Span) item,
 ) {
   final items = <T>[];
   var offset = 0;
@@ -252,7 +278,7 @@ const int _minPrimitiveSize = 4;
       if (items.length >= _maxAttachmentCount) {
         fail('$kind holds more than $_maxAttachmentCount items');
       }
-      final (it, n) = item(text.substring(offset, span));
+      final (it, n) = item(text.sub(offset, span));
       items.add(it);
       offset += n;
     }
@@ -269,7 +295,7 @@ const int _minPrimitiveSize = 4;
       );
     }
     for (var k = 0; k < count; k++) {
-      final (it, n) = item(text.substring(offset));
+      final (it, n) = item(text.from(offset));
       items.add(it);
       offset += n;
     }
@@ -277,7 +303,7 @@ const int _minPrimitiveSize = 4;
   return (items, offset);
 }
 
-int _quadletSpan(String text, int count) {
+int _quadletSpan(_Span text, int count) {
   final span = count * 4;
   if (span > text.length) {
     fail(
@@ -287,35 +313,35 @@ int _quadletSpan(String text, int count) {
   return span;
 }
 
-((String, String), int) _parseQb64Pair(String text) {
-  final (first, a) = readAttachmentMatter(text, 'couple first member');
+((String, String), int) _parseQb64Pair(_Span text) {
+  final (first, a) = readAttachmentMatter(text.head, 'couple first member');
   final (second, b) = readAttachmentMatter(
-    text.substring(a),
+    text.from(a).head,
     'couple second member',
   );
   return ((first, second), a + b);
 }
 
-(BlindedState, int) _parseBlindedState(String text) {
-  final (blid, a) = readAttachmentMatter(text, 'blinded state BLID');
+(BlindedState, int) _parseBlindedState(_Span text) {
+  final (blid, a) = readAttachmentMatter(text.head, 'blinded state BLID');
   final (uuid, b) = readAttachmentMatter(
-    text.substring(a),
+    text.from(a).head,
     'blinded state UUID',
   );
   final (acdc, c) = readAttachmentMatter(
-    text.substring(a + b),
+    text.from(a + b).head,
     'blinded state ACDC',
   );
   final (state, d) = readAttachmentMatter(
-    text.substring(a + b + c),
+    text.from(a + b + c).head,
     'blinded state state',
   );
   return (BlindedState(blid, uuid, acdc, state), a + b + c + d);
 }
 
-((String, Uint8List), int) _parseReceiptCouple(String text) {
-  final (prefix, a) = readAttachmentMatter(text, 'prefix');
-  final (sig, b) = readAttachmentMatter(text.substring(a), 'signature');
+((String, Uint8List), int) _parseReceiptCouple(_Span text) {
+  final (prefix, a) = readAttachmentMatter(text.head, 'prefix');
+  final (sig, b) = readAttachmentMatter(text.from(a).head, 'signature');
   MatterValue m;
   try {
     m = matterFromQb64(sig);
@@ -325,24 +351,24 @@ int _quadletSpan(String text, int count) {
   return ((prefix, m.raw), a + b);
 }
 
-(TransIdxSigGroup, int) _parseTransIdxSigGroup(String text, String table) {
+(TransIdxSigGroup, int) _parseTransIdxSigGroup(_Span text, String table) {
   var offset = 0;
   final (prefix, a) = readAttachmentMatter(
-    text,
+    text.head,
     'transferable sig group prefix',
   );
   offset += a;
   final (sn, b) = readAttachmentMatter(
-    text.substring(offset),
+    text.from(offset).head,
     'transferable sig group sn',
   );
   offset += b;
   final (said, c) = readAttachmentMatter(
-    text.substring(offset),
+    text.from(offset).head,
     'transferable sig group said',
   );
   offset += c;
-  final counter = readCounter(text.substring(offset));
+  final counter = readCounter(text.from(offset).head);
   if (classify(counter.code, table) != 'ControllerIdxSigs') {
     fail(
       'transferable sig group has ${jsonQuote(counter.code)} where indexed signatures were expected',
@@ -350,19 +376,21 @@ int _quadletSpan(String text, int count) {
   }
   offset += counter.size;
   final (sigs, n) = _take<Siger>(
-    text.substring(offset),
+    text.from(offset),
     table,
     'ControllerIdxSigs',
     counter.count,
-    readIndexedSig,
+    _readSig,
   );
   offset += n;
   if (sigs.isEmpty) fail('transferable sig group carries no signatures');
   return (TransIdxSigGroup(prefix, sn, said, sigs), offset);
 }
 
-(List<Attachment>, int) _parseGroup(String text, String table) {
-  final counter = readCounter(text);
+(Siger, int) _readSig(_Span text) => readIndexedSig(text.head);
+
+(List<Attachment>, int) _parseGroup(_Span text, String table) {
+  final counter = readCounter(text.head);
   final offset = counter.size;
   final kind = classify(counter.code, table);
   if (kind == null) {
@@ -370,11 +398,11 @@ int _quadletSpan(String text, int count) {
       'unrecognised attachment counter code ${jsonQuote(counter.code)} for $table; refusing to guess its length',
     );
   }
-  final body = text.substring(offset);
+  final body = text.from(offset);
   final count = counter.count;
   if (kind == 'AttachedMaterialQuadlets') {
     final span = _quadletSpan(body, count);
-    final (inner, consumed) = _parseAttachments(body.substring(0, span), table);
+    final (inner, consumed) = _parseAttachments(body.sub(0, span), table);
     if (consumed != span) {
       fail(
         'attachment group declared $span bytes but its contents accounted for $consumed',
@@ -388,7 +416,7 @@ int _quadletSpan(String text, int count) {
     case 'ControllerIdxSigs':
     case 'WitnessIdxSigs':
       final List<Siger> sigs;
-      (sigs, n) = _take<Siger>(body, table, kind, count, readIndexedSig);
+      (sigs, n) = _take<Siger>(body, table, kind, count, _readSig);
       attachment = kind == 'ControllerIdxSigs'
           ? ControllerSigs(sigs)
           : WitnessSigs(sigs);
@@ -425,7 +453,7 @@ int _quadletSpan(String text, int count) {
   return ([attachment], offset + n);
 }
 
-(List<Attachment>, int) _parseAttachments(String text, String table) {
+(List<Attachment>, int) _parseAttachments(_Span text, String table) {
   final attachments = <Attachment>[];
   var offset = 0;
   while (offset < text.length &&
@@ -434,14 +462,14 @@ int _quadletSpan(String text, int count) {
     if (table == 'V2') {
       Counter? next;
       try {
-        next = readCounter(text.substring(offset));
+        next = readCounter(text.from(offset).head);
       } on KeriError {
         next = null;
       }
       final sel = next == null ? null : _stripDashes(next.code);
       if (sel == 'F' || sel == 'G') break;
     }
-    final (group, consumed) = _parseGroup(text.substring(offset), table);
+    final (group, consumed) = _parseGroup(text.from(offset), table);
     offset += consumed;
     attachments.addAll(group);
   }
@@ -536,14 +564,15 @@ List<ParsedMessage> parseAll(Uint8List stream, {int? maxMessages}) {
     // checks that everything from an attachment group to the end of the
     // stream is (`parse_attachments`), so one non-ASCII byte anywhere later
     // fails the stream there too.
-    var restText = '';
+    var rest = _Span('', 0, 0);
     if (offset < stream.length &&
         stream[offset] == 0x2d &&
         !isGenusCounterAt(offset)) {
       if (offset < asciiFrom) fail('attachment data contains non-ASCII bytes');
-      restText = tail().substring(offset - asciiFrom);
+      final t = tail();
+      rest = _Span(t, offset - asciiFrom, t.length);
     }
-    final (attachments, consumed) = _parseAttachments(restText, table);
+    final (attachments, consumed) = _parseAttachments(rest, table);
     if (serder.raw.length + consumed == 0) {
       fail('parse_next consumed zero bytes');
     }
