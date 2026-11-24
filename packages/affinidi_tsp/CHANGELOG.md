@@ -1,3 +1,7 @@
+## 0.2.1
+
+ - **FEAT**: resolve did:scid:vh:1 VIDs through their verified did:webvh log (#5).
+
 ## 0.2.0
 
 > Note: This release has breaking changes.
