@@ -1,3 +1,7 @@
+## 0.2.3
+
+ - **FEAT**(did-webs): did:webs VID resolution (draft, staged) (#7).
+
 ## 0.2.2
 
  - **FEAT**: pure-Dart BLAKE3 hashing for KERI digests (#6).
