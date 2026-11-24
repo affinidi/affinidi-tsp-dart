@@ -67,14 +67,22 @@ enum BlockedReason {
 /// Thrown when an endpoint fails the egress policy.
 class BlockedEndpointException extends SsiException {
   /// Creates the exception.
-  BlockedEndpointException(String message, this.reason, {this.host})
-    : super(message: message, code: SsiExceptionType.unableToResolveDid.code);
+  BlockedEndpointException(
+    String message,
+    this.reason, {
+    this.host,
+    this.declaredBytes,
+  }) : super(message: message, code: SsiExceptionType.unableToResolveDid.code);
 
   /// Why the endpoint was refused.
   final BlockedReason reason;
 
   /// The canonical host that was checked, if known.
   final String? host;
+
+  /// For [BlockedReason.tooLarge], the `Content-Length` the response
+  /// declared, when that is what exceeded the cap.
+  final int? declaredBytes;
 
   @override
   String toString() => 'BlockedEndpointException(${reason.name}): $message';
@@ -429,7 +437,7 @@ final class GuardedHttpClient extends http.BaseClient {
     final length = resp.contentLength;
     if (length != null && length > maxBytes) {
       unawaited(resp.stream.drain<void>().catchError((_) {}));
-      throw _tooLarge(url, host);
+      throw _tooLarge(url, host, declared: length);
     }
     // Read the body now, under the cap, so the timeout covers it too.
     final body = <int>[];
@@ -447,11 +455,12 @@ final class GuardedHttpClient extends http.BaseClient {
     );
   }
 
-  BlockedEndpointException _tooLarge(Uri url, String host) =>
+  BlockedEndpointException _tooLarge(Uri url, String host, {int? declared}) =>
       BlockedEndpointException(
         'net-guard: $label ${url.host} response exceeds $maxBytes bytes',
         BlockedReason.tooLarge,
         host: host,
+        declaredBytes: declared,
       );
 
   /// The address to connect to: the literal itself, or the first answer for

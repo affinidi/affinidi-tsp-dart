@@ -16,6 +16,16 @@
 library;
 
 export 'src/crypto/digest.dart' show TspDigest, TspDigestAlgorithm;
+export 'src/did_webs/resolver.dart'
+    show
+        DidWebs,
+        DidWebsError,
+        DidWebsResolution,
+        defaultWebsTimeout,
+        didWebsErrorCode,
+        maxWebsArtifactBytes,
+        parseDidWebs,
+        resolveDidWebsFromArtifacts;
 export 'src/errors.dart';
 export 'src/keys/classical.dart';
 export 'src/keys/keys.dart';
@@ -26,6 +36,7 @@ export 'src/relationship/relationship.dart';
 export 'src/ssi/did_manager_extension.dart';
 export 'src/ssi/did_peer4_resolver.dart';
 export 'src/ssi/did_scid_resolver.dart';
+export 'src/ssi/did_webs_resolver.dart';
 export 'src/ssi/key_mapping.dart';
 export 'src/ssi/net_guard.dart';
 export 'src/ssi/ssi_vid_resolver.dart';
