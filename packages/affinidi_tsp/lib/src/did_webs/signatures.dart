@@ -176,6 +176,28 @@ bool ed25519Verify(Uint8List publicKey, Uint8List message, Uint8List sig) {
   return diff.clearCofactor().isZero;
 }
 
+/// The X25519 key an Ed25519 key converts to (ed25519-dalek
+/// `to_montgomery`: u = (1 + y) / (1 - y)), read as noble reads it
+/// (`Point.fromBytes(raw, true)`); null when [raw] is not a curve point or is
+/// of small order.
+Uint8List? ed25519ToX25519(Uint8List raw) {
+  final point = _decodePoint(raw, zip215: true);
+  if (point == null || point.clearCofactor().isZero) return null;
+  final y = point.y;
+  final u =
+      (BigInt.one + y) %
+      _p *
+      ((_p + BigInt.one - y) % _p).modPow(_p - BigInt.two, _p) %
+      _p;
+  final out = Uint8List(32);
+  var v = u;
+  for (var k = 0; k < 32; k++) {
+    out[k] = (v & BigInt.from(255)).toInt();
+    v >>= 8;
+  }
+  return out;
+}
+
 // ─── ECDSA ──────────────────────────────────────────────────────────────
 
 final ECDomainParameters _secp256k1 = ECCurve_secp256k1();
@@ -222,6 +244,62 @@ ECPoint? ecdsaPoint(EcdsaCurve c, Uint8List raw) {
     return params.curve.createPoint(x, y);
   }
   return null;
+}
+
+/// A refusal to decode a point, worded as @noble/curves 2.4 words it.
+class PointError implements Exception {
+  PointError(this.message);
+  final String message;
+
+  @override
+  String toString() => 'PointError: $message';
+}
+
+/// noble `Point.fromBytes(raw).toBytes(false)`: the uncompressed SEC1
+/// encoding of [raw], or a [PointError] with noble's message.
+Uint8List ecdsaUncompressed(EcdsaCurve c, Uint8List raw) {
+  final params = _params(c);
+  final p = c == EcdsaCurve.secp256k1 ? _secp256k1P : _p256P;
+  final a = params.curve.a!.toBigInteger()!;
+  final b = params.curve.b!.toBigInteger()!;
+  BigInt field(List<int> bytes) {
+    final v = _be(bytes);
+    if (v >= p) {
+      throw PointError('invalid field element: outside of range 0..ORDER');
+    }
+    return v;
+  }
+
+  BigInt x;
+  BigInt y;
+  if (raw.length == 33 && (raw[0] == 2 || raw[0] == 3)) {
+    x = field(Uint8List.sublistView(raw, 1));
+    final rhs = (x * x % p * x + a * x + b) % p;
+    y = rhs.modPow((p + BigInt.one) >> 2, p);
+    if (y * y % p != rhs) {
+      throw PointError(
+        'bad point: is not on curve, sqrt error: Cannot find square root',
+      );
+    }
+    if (y.isOdd != (raw[0] & 1 == 1)) y = (p - y) % p;
+  } else if (raw.length == 65 && raw[0] == 4) {
+    x = field(Uint8List.sublistView(raw, 1, 33));
+    y = field(Uint8List.sublistView(raw, 33));
+    if ((y * y - (x * x * x + a * x + b)) % p != BigInt.zero) {
+      throw PointError('bad point: is not on curve');
+    }
+  } else {
+    throw PointError(
+      'bad point: got length ${raw.length}, expected compressed=33 or '
+      'uncompressed=65',
+    );
+  }
+  final out = Uint8List(65)..[0] = 4;
+  for (var i = 0; i < 32; i++) {
+    out[32 - i] = ((x >> (8 * i)) & BigInt.from(255)).toInt();
+    out[64 - i] = ((y >> (8 * i)) & BigInt.from(255)).toInt();
+  }
+  return out;
 }
 
 /// The order of [c]'s group.

@@ -36,3 +36,22 @@ Regenerate it the same way:
 node test/tool/did_webs_kel_golden.mjs <vti-didcomm-js checkout> \
   test/fixtures/did_webs/golden/kel-golden.json.gz <commit>
 ```
+
+`golden/designations-golden.json.gz` holds what the JavaScript port's
+designation layer (`src/did-webs-designations.js`, and the endpoint readers of
+`src/did-webs.js`) answers for the same streams: for every identifier whose key
+state verifies, read as of the whole stream and as of each of its events (the
+first 24), the critical-designation check, the credentials issued under every
+implemented schema with their status and attributes, the designated aliases,
+key agreement keys, services and key roles (each with its first rejection
+reason), the role and witness endpoints under BADA reply state, and the
+delegator service; plus the X25519 conversion and the JWK of every key-state
+key. `test/did_webs_designations_test.dart` requires the Dart port to answer
+identically, and separately requires every `service_endpoints`,
+`delegator_service` and `designated_*` record of the Rust vectors to give the
+Rust answer or error kind. Regenerate it the same way:
+
+```sh
+node test/tool/did_webs_designations_golden.mjs <vti-didcomm-js checkout> \
+  test/fixtures/did_webs/golden/designations-golden.json.gz <commit>
+```
