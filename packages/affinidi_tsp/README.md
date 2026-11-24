@@ -39,7 +39,7 @@ and on mobile.
 | Confidentiality | HPKE-Base (RFC 9180, DHKEM(X25519)/HKDF-SHA256/ChaCha20Poly1305), libsodium sealed box, signed-only |
 | Post-quantum | MLKEM768-X25519 hybrid KEM and ML-DSA-65 via the companion package [`affinidi_tsp_pq`](../affinidi_tsp_pq/) |
 | Relationships | State machine (`none` / `invite-sent` / `invite-received` / `bidirectional`), invite race tie-break by lower digest, decline/cancel, application messages refused without a relationship |
-| ssi | `DidManager` → `PrivateVid` (keys stay in the wallet), `SsiVidResolver` (did:key, did:peer, did:web, did:webvh via `ssi`), `DidPeer4Resolver` |
+| ssi | `DidManager` → `PrivateVid` (keys stay in the wallet), `SsiVidResolver` (did:key, did:peer, did:web, did:webvh via `ssi`), `DidPeer4Resolver`, `DidScidResolver` (did:scid:vh:1, verified through its did:webvh log; every fetch goes through `GuardedHttpClient`: HTTPS, public addresses only after DNS, no redirects, 200 KiB / 10 s limits) |
 | Hardening | Size limits checked before allocation, trailing bytes rejected, unknown MAJOR version rejected, only typed `TspException`s on untrusted input |
 
 Cryptographic primitives come from packages already in the `ssi`/`didcomm`

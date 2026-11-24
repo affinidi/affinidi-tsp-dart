@@ -25,5 +25,7 @@ export 'src/relationship/endpoint.dart';
 export 'src/relationship/relationship.dart';
 export 'src/ssi/did_manager_extension.dart';
 export 'src/ssi/did_peer4_resolver.dart';
+export 'src/ssi/did_scid_resolver.dart';
 export 'src/ssi/key_mapping.dart';
+export 'src/ssi/net_guard.dart';
 export 'src/ssi/ssi_vid_resolver.dart';
