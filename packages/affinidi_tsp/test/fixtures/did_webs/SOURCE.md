@@ -55,3 +55,20 @@ Rust answer or error kind. Regenerate it the same way:
 node test/tool/did_webs_designations_golden.mjs <vti-didcomm-js checkout> \
   test/fixtures/did_webs/golden/designations-golden.json.gz <commit>
 ```
+
+`golden/resolve-golden.json.gz` holds what the JavaScript port's resolver
+(`src/did-webs.js`, `resolveFromArtifacts`) answers for every `resolve`
+record of the Rust vectors and for every published fixture (with and without
+its `did.json`, and as of each of its events): the resolved document,
+document metadata and resolution metadata exactly as the JS returns them, or
+the refusal's kind and exact message. It also holds a set of DIDs as
+`parseDidWebs` reads them, and their artifact URLs (`websArtifactUrls`) under
+the default, private, insecure and allow-listed egress policies.
+`test/did_webs_resolver_test.dart` requires the Dart port to answer
+identically, and separately requires every `resolve` record to give the Rust
+document and metadata, or its error kind. Regenerate it the same way:
+
+```sh
+node test/tool/did_webs_resolve_golden.mjs <vti-didcomm-js checkout> \
+  test/fixtures/did_webs/golden/resolve-golden.json.gz <commit>
+```
