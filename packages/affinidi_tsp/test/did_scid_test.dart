@@ -4,6 +4,7 @@
 // `test/did-scid.test.js` ports from the Rust stack (affinidi_did_common::scid
 // and didwebvh-rs did_web.rs). Resolution runs against `ssi`'s signed example
 // did:webvh logs (affinidi-ssi-dart, Apache-2.0), served by a mock client.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -26,6 +27,35 @@ const _bobLogUrl = 'https://$_bobSrc/did.jsonl';
 
 String _fixture(String name) =>
     File('test/fixtures/didwebvh/$name').readAsStringSync();
+
+/// Answers every DNS lookup with a public documentation-free address, so
+/// tests make no real lookups.
+Future<List<InternetAddress>> _publicDns(String host) async => [
+  InternetAddress('93.184.215.14'),
+];
+
+/// A resolver whose transport is [client] and whose DNS is [_publicDns].
+DidScidResolver _resolver(
+  http.Client client, {
+  HostLookup lookup = _publicDns,
+  NetPolicy netPolicy = const NetPolicy(),
+  int maxBytes = defaultMaxArtifactBytes,
+  int maxLogEntries = defaultMaxLogEntries,
+  Duration timeout = defaultRequestTimeout,
+}) => DidScidResolver(
+  transport: client,
+  lookup: lookup,
+  netPolicy: netPolicy,
+  maxBytes: maxBytes,
+  maxLogEntries: maxLogEntries,
+  timeout: timeout,
+);
+
+Matcher _blocked(BlockedReason reason) =>
+    isA<BlockedEndpointException>().having((e) => e.reason, 'reason', reason);
+
+Matcher _failed(DidScidFailure failure) => isA<DidScidResolutionException>()
+    .having((e) => e.failure, 'failure', failure);
 
 /// Serves [body] for the bob log, and 404 for everything else.
 http.Client _serving(String Function() body) => MockClient((request) async {
@@ -321,9 +351,7 @@ void main() {
 
   group('resolution', () {
     test('a did:scid DID URL resolves to its own document', () async {
-      final resolver = DidScidResolver(
-        httpClient: _serving(() => _fixture('bob.jsonl')),
-      );
+      final resolver = _resolver(_serving(() => _fixture('bob.jsonl')));
       final doc = await resolver.resolveDid(_bobScidUrl);
       expect(doc.id, _bobScidDid);
       final json = doc.toJson();
@@ -335,9 +363,7 @@ void main() {
     });
 
     test('a bare DID resolves through the source already verified', () async {
-      final resolver = DidScidResolver(
-        httpClient: _serving(() => _fixture('bob.jsonl')),
-      );
+      final resolver = _resolver(_serving(() => _fixture('bob.jsonl')));
       await expectLater(
         resolver.resolveDid(_bobScidDid),
         throwsA(isA<SsiException>()),
@@ -349,12 +375,12 @@ void main() {
 
     test('an older copy of the log is refused', () async {
       var body = _fixture('bob.jsonl');
-      final resolver = DidScidResolver(httpClient: _serving(() => body));
+      final resolver = _resolver(_serving(() => body));
       await resolver.resolveDid(_bobScidUrl);
       body = body.trim().split('\n').first;
       await expectLater(
         resolver.resolveDid(_bobScidUrl),
-        throwsA(isA<SsiException>()),
+        throwsA(_failed(DidScidFailure.rollback)),
       );
     });
 
@@ -363,8 +389,8 @@ void main() {
       const src =
           'raw.githubusercontent.com/affinidi/affinidi-ssi-dart/refs/heads/'
           'main/example/dids/didwebvh/bob-tampered';
-      final resolver = DidScidResolver(
-        httpClient: MockClient((request) async {
+      final resolver = _resolver(
+        MockClient((request) async {
           if (request.url.toString() == 'https://$src/did.jsonl') {
             return http.Response(_fixture('bob-tampered.jsonl'), 200);
           }
@@ -378,7 +404,7 @@ void main() {
     });
 
     test('other methods go to the fallback', () async {
-      final resolver = DidScidResolver(httpClient: _serving(() => ''));
+      final resolver = _resolver(_serving(() => ''));
       final doc = await resolver.resolveDid(
         'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
       );
@@ -386,7 +412,7 @@ void main() {
     });
 
     test('only the vh:1 format is supported', () async {
-      final resolver = DidScidResolver(httpClient: _serving(() => ''));
+      final resolver = _resolver(_serving(() => ''));
       await expectLater(
         resolver.resolveDid('did:scid:ke:1:abc?src=example.com'),
         throwsA(isA<SsiException>()),
@@ -396,13 +422,281 @@ void main() {
     test('SsiVidResolver resolves a did:scid VID by default chain', () async {
       final vid = SsiVidResolver(
         didResolver: DidPeer4Resolver(
-          fallback: DidScidResolver(
-            httpClient: _serving(() => _fixture('bob.jsonl')),
-          ),
+          fallback: _resolver(_serving(() => _fixture('bob.jsonl'))),
         ),
       );
       final resolved = await vid.resolve(_bobScidUrl);
       expect(resolved.id, _bobScidUrl);
+    });
+  });
+
+  group('egress guard', () {
+    test('a plaintext scheme in src never makes a plaintext request', () async {
+      final schemes = <String>[];
+      final resolver = _resolver(
+        MockClient((request) async {
+          schemes.add(request.url.scheme);
+          return http.Response(_fixture('bob.jsonl'), 200);
+        }),
+      );
+      await resolver.resolveDid('$_bobScidDid?src=http://$_bobSrc');
+      expect(schemes, isNotEmpty);
+      expect(schemes, everyElement('https'));
+    });
+
+    test('the guard refuses a plaintext URL unless allowInsecure', () async {
+      final guard = GuardedHttpClient(
+        lookup: _publicDns,
+        inner: MockClient((request) async => http.Response('ok', 200)),
+      );
+      await expectLater(
+        guard.get(Uri.parse('http://example.com/did.jsonl')),
+        throwsA(_blocked(BlockedReason.scheme)),
+      );
+    });
+
+    test('loopback, private and local-name sources are refused', () async {
+      final resolver = _resolver(_serving(() => _fixture('bob.jsonl')));
+      for (final src in [
+        '127.0.0.1/bob',
+        '10.0.0.7/bob',
+        '169.254.169.254/latest',
+        '100.100.100.200/x',
+        '0.0.0.0/x',
+        '127.0.0.1:8443/bob',
+      ]) {
+        await expectLater(
+          resolver.resolveDid('$_bobScidDid?src=$src'),
+          throwsA(_blocked(BlockedReason.privateAddress)),
+          reason: src,
+        );
+      }
+      for (final src in ['localhost/bob', 'metadata/x', 'nas.local/x']) {
+        await expectLater(
+          resolver.resolveDid('$_bobScidDid?src=$src'),
+          throwsA(_blocked(BlockedReason.privateName)),
+          reason: src,
+        );
+      }
+    });
+
+    test(
+      'a public name that resolves to a private address is refused',
+      () async {
+        for (final address in [
+          '10.1.2.3',
+          '127.0.0.1',
+          '::1',
+          '169.254.169.254',
+        ]) {
+          final resolver = _resolver(
+            _serving(() => _fixture('bob.jsonl')),
+            lookup: (host) async => [
+              InternetAddress('93.184.215.14'),
+              InternetAddress(address),
+            ],
+          );
+          await expectLater(
+            resolver.resolveDid(_bobScidUrl),
+            throwsA(_blocked(BlockedReason.privateAddress)),
+            reason: address,
+          );
+        }
+      },
+    );
+
+    test('a redirect is refused, wherever it points', () async {
+      final resolver = _resolver(
+        MockClient(
+          (request) async => http.Response(
+            '',
+            302,
+            headers: {'location': 'http://169.254.169.254/latest/meta-data'},
+          ),
+        ),
+      );
+      await expectLater(
+        resolver.resolveDid(_bobScidUrl),
+        throwsA(_blocked(BlockedReason.redirect)),
+      );
+    });
+
+    test('an oversized log is refused', () async {
+      final big = 'x' * (defaultMaxArtifactBytes + 1);
+      await expectLater(
+        _resolver(_serving(() => big)).resolveDid(_bobScidUrl),
+        throwsA(_blocked(BlockedReason.tooLarge)),
+      );
+      // Without a Content-Length, the body is cut off as it streams.
+      final streamed = _resolver(
+        MockClient.streaming(
+          (request, body) async => http.StreamedResponse(
+            Stream.fromIterable(List.filled(30, List.filled(10 * 1024, 120))),
+            200,
+          ),
+        ),
+      );
+      await expectLater(
+        streamed.resolveDid(_bobScidUrl),
+        throwsA(_blocked(BlockedReason.tooLarge)),
+      );
+    });
+
+    test('a log with too many entries is refused', () async {
+      final resolver = _resolver(
+        _serving(() => _fixture('bob.jsonl')),
+        maxLogEntries: 1,
+      );
+      await expectLater(
+        resolver.resolveDid(_bobScidUrl),
+        throwsA(_failed(DidScidFailure.tooLarge)),
+      );
+    });
+
+    test('a request that does not answer in time is refused', () async {
+      final never = Completer<http.Response>();
+      final resolver = _resolver(
+        MockClient((request) => never.future),
+        timeout: const Duration(milliseconds: 100),
+      );
+      await expectLater(
+        resolver.resolveDid(_bobScidUrl),
+        throwsA(_blocked(BlockedReason.timeout)),
+      );
+    });
+
+    test(
+      'the real transport refuses a redirect and an oversized body',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        addTearDown(() => server.close(force: true));
+        server.listen((req) {
+          if (req.uri.path == '/redirect') {
+            req.response
+              ..statusCode = 302
+              ..headers.set('location', 'http://10.0.0.1/')
+              ..close();
+          } else if (req.uri.path == '/big') {
+            req.response
+              ..write('y' * (defaultMaxArtifactBytes + 10))
+              ..close();
+          } else {
+            req.response
+              ..write('ok')
+              ..close();
+          }
+        });
+        final base = 'http://127.0.0.1:${server.port}';
+        final local = GuardedHttpClient(
+          policy: const NetPolicy(allowInsecure: true, allowPrivate: true),
+        );
+        expect((await local.get(Uri.parse('$base/ok'))).body, 'ok');
+        await expectLater(
+          local.get(Uri.parse('$base/redirect')),
+          throwsA(_blocked(BlockedReason.redirect)),
+        );
+        await expectLater(
+          local.get(Uri.parse('$base/big')),
+          throwsA(_blocked(BlockedReason.tooLarge)),
+        );
+        // Without the opt-in, the loopback server is never dialled.
+        await expectLater(
+          GuardedHttpClient(
+            policy: const NetPolicy(allowInsecure: true),
+          ).get(Uri.parse('$base/ok')),
+          throwsA(_blocked(BlockedReason.privateAddress)),
+        );
+      },
+    );
+
+    test('isBlockedIp classifies addresses', () {
+      for (final ip in [
+        '0.0.0.0',
+        '127.0.0.1',
+        '10.0.0.1',
+        '172.16.5.4',
+        '192.168.1.1',
+        '169.254.169.254',
+        '100.100.100.200',
+        '224.0.0.1',
+        '255.255.255.255',
+        '::',
+        '::1',
+        '::ffff:127.0.0.1',
+        '::ffff:7f00:1',
+        '64:ff9b::a00:1',
+        '2002:a00:1::',
+        'fd00:ec2::254',
+        'fe80::1',
+        'ff02::1',
+        '0177.0.0.1',
+        'example.com',
+      ]) {
+        expect(isBlockedIp(ip), isTrue, reason: ip);
+      }
+      for (final ip in ['93.184.215.14', '8.8.8.8', '2606:4700:4700::1111']) {
+        expect(isBlockedIp(ip), isFalse, reason: ip);
+      }
+    });
+  });
+
+  group('verified log binding', () {
+    test("a log for another host is refused when it isn't portable", () async {
+      // bob's log, served from a host it does not name.
+      final resolver = _resolver(
+        MockClient(
+          (request) async => http.Response(_fixture('bob.jsonl'), 200),
+        ),
+      );
+      await expectLater(
+        resolver.resolveDid('$_bobScidDid?src=evil.example/bob'),
+        throwsA(_failed(DidScidFailure.mismatch)),
+      );
+    });
+
+    test('a log for another SCID is refused', () async {
+      final resolver = _resolver(
+        MockClient(
+          (request) async => http.Response(_fixture('bob.jsonl'), 200),
+        ),
+      );
+      await expectLater(
+        resolver.resolveDid(
+          'did:scid:vh:1:QmSgM3nsNxmFKyhiaPvk2nMAvjK4hqQwTHnJCKbHohtSq8'
+          '?src=$_bobSrc',
+        ),
+        throwsA(isA<SsiException>()),
+      );
+    });
+  });
+
+  group('malformed input', () {
+    test('throws the typed resolution exception, never a crash', () async {
+      final resolver = _resolver(_serving(() => _fixture('bob.jsonl')));
+      for (final did in [
+        'did:scid:vh:1:abc?src=example.com:99999999999999999999999999',
+        'did:scid:vh:1:abc?src=example.com:notaport',
+        'did:scid:vh:1:abc?src=example.com:70000',
+        'did:scid:vh:1:?src=example.com',
+        'did:scid:vh:1:a:b?src=example.com',
+        'did:scid:vh:1:abc?src=',
+        'did:scid:vh:1:abc?src=%zz/x',
+        'did:scid:vh:1:abc',
+      ]) {
+        await expectLater(
+          resolver.resolveDid(did),
+          throwsA(isA<DidScidResolutionException>()),
+          reason: did,
+        );
+      }
+    });
+
+    test('a log that is not JSON lines is a typed failure', () async {
+      final resolver = _resolver(_serving(() => '{not json\n'));
+      await expectLater(
+        resolver.resolveDid(_bobScidUrl),
+        throwsA(isA<SsiException>()),
+      );
     });
   });
 }
