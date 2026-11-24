@@ -15,6 +15,34 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`affinidi_tsp` - `v0.2.2`](#affinidi_tsp---v022)
+ - [`affinidi_tsp_pq` - `v0.2.2`](#affinidi_tsp_pq---v022)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `affinidi_tsp_pq` - `v0.2.2`
+
+---
+
+#### `affinidi_tsp` - `v0.2.2`
+
+ - **FEAT**: pure-Dart BLAKE3 hashing for KERI digests (#6).
+
+
+## 2026-11-24
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`affinidi_tsp` - `v0.2.1`](#affinidi_tsp---v021)
  - [`affinidi_tsp_pq` - `v0.2.1`](#affinidi_tsp_pq---v021)
 

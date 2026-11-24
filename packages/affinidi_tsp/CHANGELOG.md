@@ -1,3 +1,7 @@
+## 0.2.2
+
+ - **FEAT**: pure-Dart BLAKE3 hashing for KERI digests (#6).
+
 ## 0.2.1
 
  - **FEAT**: resolve did:scid:vh:1 VIDs through their verified did:webvh log (#5).
