@@ -6,53 +6,18 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:affinidi_tsp/src/did_webs/cesr.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:test/test.dart';
 
-const _fixtures = 'test/fixtures/did_webs';
+import 'support/did_webs_vectors.dart';
+
+const _fixtures = didWebsFixtures;
 
 Map<String, Object?> _golden() {
   final bytes = File('$_fixtures/golden/cesr-golden.json.gz').readAsBytesSync();
   return jsonDecode(utf8.decode(gzip.decode(bytes))) as Map<String, Object?>;
-}
-
-Uint8List _blob(String name) =>
-    File('$_fixtures/vectors/rust-vectors/blobs/$name').readAsBytesSync();
-
-/// A recorded mutation, applied as the Rust vector generator applied it.
-Uint8List _mutate(Uint8List base, Map<String, Object?>? m) {
-  if (m == null) return base;
-  switch (m['type']) {
-    case 'replace':
-      final out = Uint8List.fromList(base);
-      out[m['at']! as int] = m['byte']! as int;
-      return out;
-    case 'splice':
-      final start = m['start']! as int;
-      final end = m['end']! as int;
-      final ins = m['insert'] as List<Object?>?;
-      final insert = ins == null
-          ? Uint8List(0)
-          : base.sublist(ins[0]! as int, ins[1]! as int);
-      return Uint8List.fromList([
-        ...base.sublist(0, start),
-        ...insert,
-        ...base.sublist(end),
-      ]);
-    case 'swap':
-      final a = (m['a']! as List).cast<int>();
-      final b = (m['b']! as List).cast<int>();
-      return Uint8List.fromList([
-        ...base.sublist(0, a[0]),
-        ...base.sublist(b[0], b[1]),
-        ...base.sublist(a[0], a[1]),
-        ...base.sublist(b[1]),
-      ]);
-  }
-  throw StateError('unknown mutation ${m['type']}');
 }
 
 String _sig(Siger s) =>
@@ -125,8 +90,8 @@ void main() {
       test(name, () {
         final bytes = c['file'] != null
             ? File('$_fixtures/vectors/${c['file']}').readAsBytesSync()
-            : _mutate(
-                _blob(c['blob']! as String),
+            : mutate(
+                vectorBlob(c['blob']! as String),
                 c['mutation'] as Map<String, Object?>?,
               );
         if (c['ok'] == true) {

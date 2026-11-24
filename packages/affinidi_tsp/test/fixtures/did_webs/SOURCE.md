@@ -21,3 +21,18 @@ Regenerate it from a vti-didcomm-js checkout with its dependencies installed:
 node test/tool/did_webs_cesr_golden.mjs <vti-didcomm-js checkout> \
   test/fixtures/did_webs/golden/cesr-golden.json.gz <commit>
 ```
+
+`golden/kel-golden.json.gz` holds what the JavaScript port's KEL layer
+(`src/did-webs-kel.js`) answers for the same streams: the parse verdict, then
+for every identifier its key state (or the exact refusal), deactivation,
+sequence numbers, issuer log, anchored digests and key state as of each of
+its events (the first 24), and the verdict on every transferable signature
+group in the stream. `test/did_webs_kel_test.dart` requires the Dart port to
+answer identically, and separately requires every `key_state` and `parse`
+record of the Rust vectors to give the Rust key state or error kind.
+Regenerate it the same way:
+
+```sh
+node test/tool/did_webs_kel_golden.mjs <vti-didcomm-js checkout> \
+  test/fixtures/did_webs/golden/kel-golden.json.gz <commit>
+```
