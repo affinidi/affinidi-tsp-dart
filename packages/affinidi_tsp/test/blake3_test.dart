@@ -90,6 +90,13 @@ void main() {
   test('finalize does not reset and rejects a negative length', () {
     final h = Blake3()..update(utf8.encode('abc'));
     expect(_hex(h.finalize()), _hex(h.finalize()));
-    expect(() => h.finalize(-1), throwsArgumentError);
+    expect(() => h.finalize(-1), throwsRangeError);
+  });
+
+  test('finalize caps the output length', () {
+    final h = Blake3()..update(utf8.encode('abc'));
+    expect(h.finalize(blake3MaxOutputLength).length, blake3MaxOutputLength);
+    expect(() => h.finalize(blake3MaxOutputLength + 1), throwsRangeError);
+    expect(() => blake3(const [], 1 << 30), throwsRangeError);
   });
 }

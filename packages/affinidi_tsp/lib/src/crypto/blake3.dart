@@ -14,6 +14,11 @@
 import 'dart:typed_data';
 
 const int _outLen = 32;
+
+/// The longest output [Blake3.finalize] produces. KERI digests need 32 or 64
+/// bytes; the cap stops a caller that forwards an untrusted length from
+/// allocating and computing an arbitrarily large output.
+const int blake3MaxOutputLength = 1024;
 const int _blockLen = 64;
 const int _chunkLen = 1024;
 
@@ -260,10 +265,12 @@ class Blake3 {
   }
 
   /// The hash of everything added so far, [length] bytes long (default 32).
-  /// Lengths above 32 use BLAKE3's extendable output. Does not reset the
-  /// hasher.
+  /// Lengths above 32 use BLAKE3's extendable output, up to
+  /// [blake3MaxOutputLength]. Does not reset the hasher.
   Uint8List finalize([int length = _outLen]) {
-    if (length < 0) throw ArgumentError.value(length, 'length');
+    if (length < 0 || length > blake3MaxOutputLength) {
+      throw RangeError.range(length, 0, blake3MaxOutputLength, 'length');
+    }
     var output = _chunk.output();
     for (var i = _cvStack.length - 1; i >= 0; i--) {
       output = _parentOutput(_cvStack[i], output.chainingValue(), _key, 0);
