@@ -8,7 +8,7 @@ on:
 
 jobs:
   dart-pipeline:
-    uses: affinidi/pipeline-dart/.github/workflows/publish.yaml@d128983279267e829f298ae170be08ff87f46bfd # pipeline-dart#33 head 2026-11-25, re-pin to its merge commit
+    uses: affinidi/pipeline-dart/.github/workflows/publish.yaml@09fa35547ead0582193a159eef0ef6d7cab6764c # main, 2026-11-25
     secrets: inherit
     with:
       publish: true
