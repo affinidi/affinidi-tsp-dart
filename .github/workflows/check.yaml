@@ -5,7 +5,7 @@ on:
 
 jobs:
   dart-pipeline:
-    uses: affinidi/pipeline-dart/.github/workflows/check.yaml@17cb6c8d3931d096fbe72c364adc674697a20f4d # main 2026-09-28
+    uses: affinidi/pipeline-dart/.github/workflows/check.yaml@d128983279267e829f298ae170be08ff87f46bfd # pipeline-dart#33 head 2026-11-25, re-pin to its merge commit
     secrets: inherit
     with:
       flutter-version: '3.41.9'
